@@ -536,42 +536,171 @@ export default function HomePage() {
       </AnimateOnScroll>
 
       {/* Footer */}
-      <footer className="relative border-t border-border bg-card/20 py-12 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 sm:flex-row sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="group flex items-center gap-2.5 transition-all duration-300"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/25 transition-all duration-300 group-hover:scale-105 group-hover:shadow-primary/40">
-              <Monitor className="h-5 w-5 text-primary-foreground" />
+      <footer className="relative border-t border-border bg-gradient-to-b from-background via-card/30 to-card/50 py-16 backdrop-blur-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Brand Column */}
+            <div className="space-y-4 sm:col-span-2 lg:col-span-1">
+              <Link
+                href="/"
+                className="group inline-flex items-center gap-2.5 transition-all duration-300"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/25 transition-all duration-500 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-primary/40">
+                  <Monitor className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <span className="text-xl font-extrabold">MyQuickPOS</span>
+              </Link>
+              <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+                Modern point of sale system that just works. Free forever, no subscriptions.
+              </p>
+              <div className="flex gap-3 pt-2">
+                <a
+                  href="https://github.com/myquickpos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card/50 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:border-primary/50 hover:bg-primary/10"
+                >
+                  <Globe className="h-4 w-4" />
+                </a>
+                <a
+                  href="https://twitter.com/myquickpos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card/50 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:border-primary/50 hover:bg-primary/10"
+                >
+                  <Globe className="h-4 w-4" />
+                </a>
+              </div>
             </div>
-            <span className="text-lg font-bold">MyQuickPOS</span>
-          </Link>
-          <div className="flex gap-8 text-sm font-medium text-muted-foreground">
-            <Link
-              href="/login"
-              className="transition-all duration-300 hover:text-foreground hover:scale-105"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              className="transition-all duration-300 hover:text-foreground hover:scale-105"
-            >
-              Get started
-            </Link>
-            <a
-              href="#donate"
-              className="transition-all duration-300 hover:text-foreground hover:scale-105"
-            >
-              Donate
-            </a>
+
+            {/* Product Column */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+                Product
+              </h3>
+              <ul className="space-y-3">
+                <li>
+                  <Link
+                    href="/signup"
+                    className="inline-block text-sm text-muted-foreground transition-all duration-300 hover:translate-x-1 hover:text-foreground"
+                  >
+                    Get started
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/login"
+                    className="inline-block text-sm text-muted-foreground transition-all duration-300 hover:translate-x-1 hover:text-foreground"
+                  >
+                    Sign in
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href="#donate"
+                    className="inline-block text-sm text-muted-foreground transition-all duration-300 hover:translate-x-1 hover:text-foreground"
+                  >
+                    Donate
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Features Column */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+                Features
+              </h3>
+              <ul className="space-y-3">
+                <li>
+                  <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    Multi-terminal
+                  </span>
+                </li>
+                <li>
+                  <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    Real-time sync
+                  </span>
+                </li>
+                <li>
+                  <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    Offline mode
+                  </span>
+                </li>
+                <li>
+                  <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    Analytics
+                  </span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Support Column */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+                Support
+              </h3>
+              <ul className="space-y-3">
+                <li>
+                  <a
+                    href="https://github.com/myquickpos"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block text-sm text-muted-foreground transition-all duration-300 hover:translate-x-1 hover:text-foreground"
+                  >
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:support@myquickpos.com"
+                    className="inline-block text-sm text-muted-foreground transition-all duration-300 hover:translate-x-1 hover:text-foreground"
+                  >
+                    Contact
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/docs"
+                    className="inline-block text-sm text-muted-foreground transition-all duration-300 hover:translate-x-1 hover:text-foreground"
+                  >
+                    Documentation
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
-        </div>
-        <div className="mt-8 text-center">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} MyQuickPOS. Free forever.
-          </p>
+
+          {/* Bottom Bar */}
+          <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 sm:flex-row">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} MyQuickPOS. Free forever, no subscriptions.
+            </p>
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <a
+                href="/privacy"
+                className="transition-colors duration-300 hover:text-foreground"
+              >
+                Privacy
+              </a>
+              <a
+                href="/terms"
+                className="transition-colors duration-300 hover:text-foreground"
+              >
+                Terms
+              </a>
+              <a
+                href="/license"
+                className="transition-colors duration-300 hover:text-foreground"
+              >
+                License
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
