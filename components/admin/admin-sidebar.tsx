@@ -15,12 +15,16 @@ import {
   ChevronRight,
   Users,
   LogOut,
+  UserCircle,
+  Gift,
 } from "lucide-react"
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/terminals", label: "Terminals", icon: Monitor },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/customers", label: "Customers", icon: UserCircle },
+  { href: "/admin/loyalty", label: "Loyalty Programs", icon: Gift },
   { href: "/admin/products", label: "Products", icon: ShoppingBag },
   { href: "/admin/stock", label: "Stock", icon: Warehouse },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
