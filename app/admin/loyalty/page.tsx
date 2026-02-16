@@ -186,8 +186,36 @@ export default function LoyaltyProgramsPage() {
   const [rewards, setRewards] = useState<Reward[]>(mockRewards)
   const [createTierOpen, setCreateTierOpen] = useState(false)
   const [createRewardOpen, setCreateRewardOpen] = useState(false)
+  const [editRewardOpen, setEditRewardOpen] = useState(false)
+  const [editTierOpen, setEditTierOpen] = useState(false)
+  const [editingReward, setEditingReward] = useState<Reward | null>(null)
+  const [editingTier, setEditingTier] = useState<LoyaltyTier | null>(null)
 
   const program = programs[0] // For now, showing single program
+
+  const handleEditReward = (reward: Reward) => {
+    setEditingReward(reward)
+    setEditRewardOpen(true)
+  }
+
+  const handleEditTier = (tier: LoyaltyTier) => {
+    setEditingTier(tier)
+    setEditTierOpen(true)
+  }
+
+  const handleSaveReward = () => {
+    // In real app, this would save to backend
+    setEditRewardOpen(false)
+    setCreateRewardOpen(false)
+    setEditingReward(null)
+  }
+
+  const handleSaveTier = () => {
+    // In real app, this would save to backend
+    setEditTierOpen(false)
+    setCreateTierOpen(false)
+    setEditingTier(null)
+  }
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("en-US", {
@@ -303,7 +331,7 @@ export default function LoyaltyProgramsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditTier(tier)}>
                         <Pencil className="h-4 w-4" />
                         Edit Tier
                       </DropdownMenuItem>
@@ -466,7 +494,7 @@ export default function LoyaltyProgramsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditReward(reward)}>
                               <Pencil className="h-4 w-4" />
                               Edit Reward
                             </DropdownMenuItem>
@@ -559,6 +587,204 @@ export default function LoyaltyProgramsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Create/Edit Reward Dialog */}
+      <Dialog open={createRewardOpen || editRewardOpen} onOpenChange={(open) => {
+        if (!open) {
+          setCreateRewardOpen(false)
+          setEditRewardOpen(false)
+          setEditingReward(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{editingReward ? "Edit Reward" : "Create New Reward"}</DialogTitle>
+            <DialogDescription>
+              {editingReward ? "Update reward details below." : "Add a new reward to your loyalty program."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reward-name">Reward Name</Label>
+              <Input
+                id="reward-name"
+                placeholder="e.g., $5 Off, Free Coffee"
+                defaultValue={editingReward?.name}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reward-description">Description</Label>
+              <Input
+                id="reward-description"
+                placeholder="Brief description of the reward"
+                defaultValue={editingReward?.description}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="reward-type">Reward Type</Label>
+                <select
+                  id="reward-type"
+                  defaultValue={editingReward?.type || "discount"}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="discount">Discount</option>
+                  <option value="product">Product</option>
+                  <option value="service">Service</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reward-points">Points Cost</Label>
+                <Input
+                  id="reward-points"
+                  type="number"
+                  placeholder="500"
+                  defaultValue={editingReward?.pointsCost}
+                  min="0"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="reward-value">Value ($)</Label>
+                <Input
+                  id="reward-value"
+                  type="number"
+                  step="0.01"
+                  placeholder="5.00"
+                  defaultValue={editingReward?.value}
+                  min="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reward-available">Available Quantity</Label>
+                <Input
+                  id="reward-available"
+                  type="number"
+                  placeholder="100"
+                  defaultValue={editingReward?.available}
+                  min="0"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-base">Active Status</Label>
+                <p className="text-sm text-muted-foreground">
+                  Make this reward available for redemption
+                </p>
+              </div>
+              <Switch defaultChecked={editingReward?.active ?? true} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCreateRewardOpen(false)
+                setEditRewardOpen(false)
+                setEditingReward(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveReward}>
+              {editingReward ? "Save Changes" : "Create Reward"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Tier Dialog */}
+      <Dialog open={createTierOpen || editTierOpen} onOpenChange={(open) => {
+        if (!open) {
+          setCreateTierOpen(false)
+          setEditTierOpen(false)
+          setEditingTier(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{editingTier ? "Edit Tier" : "Create New Tier"}</DialogTitle>
+            <DialogDescription>
+              {editingTier ? "Update tier details below." : "Add a new membership tier to your program."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="tier-name">Tier Name</Label>
+              <Input
+                id="tier-name"
+                placeholder="e.g., Gold, Platinum"
+                defaultValue={editingTier?.name}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="tier-points">Points Required</Label>
+                <Input
+                  id="tier-points"
+                  type="number"
+                  placeholder="1000"
+                  defaultValue={editingTier?.pointsRequired}
+                  min="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tier-discount">Discount (%)</Label>
+                <Input
+                  id="tier-discount"
+                  type="number"
+                  placeholder="10"
+                  defaultValue={editingTier?.discount}
+                  min="0"
+                  max="100"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tier-color">Tier Color</Label>
+              <select
+                id="tier-color"
+                defaultValue={editingTier?.color || "text-amber-600 bg-amber-100 dark:bg-amber-950"}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="text-amber-600 bg-amber-100 dark:bg-amber-950">Bronze (Amber)</option>
+                <option value="text-slate-500 bg-slate-100 dark:bg-slate-800">Silver (Slate)</option>
+                <option value="text-yellow-600 bg-yellow-100 dark:bg-yellow-950">Gold (Yellow)</option>
+                <option value="text-purple-600 bg-purple-100 dark:bg-purple-950">Platinum (Purple)</option>
+                <option value="text-blue-600 bg-blue-100 dark:bg-blue-950">Sapphire (Blue)</option>
+                <option value="text-emerald-600 bg-emerald-100 dark:bg-emerald-950">Emerald (Green)</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tier-benefits">Benefits (one per line)</Label>
+              <textarea
+                id="tier-benefits"
+                rows={4}
+                placeholder="Earn 1.5 points per $1&#10;10% discount&#10;Free delivery"
+                defaultValue={editingTier?.benefits.join('\n')}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCreateTierOpen(false)
+                setEditTierOpen(false)
+                setEditingTier(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTier}>
+              {editingTier ? "Save Changes" : "Create Tier"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
