@@ -128,18 +128,17 @@ export default function CustomersPage() {
   }
 
   function formatCurrency(amount: number) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
+    return `$${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+  }
+
+  function formatNumber(num: number) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
   }
 
   function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
+    const date = new Date(dateStr)
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
   }
 
   function handleDelete(id: string) {
@@ -331,7 +330,7 @@ export default function CustomersPage() {
                       <div className="flex items-center gap-1.5">
                         <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                         <span className="font-semibold text-foreground">
-                          {customer.loyaltyPoints.toLocaleString()}
+                          {formatNumber(customer.loyaltyPoints)}
                         </span>
                       </div>
                     </td>
@@ -465,7 +464,7 @@ export default function CustomersPage() {
                     })()}
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 dark:bg-yellow-950 px-3 py-1 text-xs font-bold text-yellow-600">
                       <Star className="h-3 w-3 fill-yellow-600" />
-                      {viewCustomer.loyaltyPoints.toLocaleString()} points
+                      {formatNumber(viewCustomer.loyaltyPoints)} points
                     </span>
                   </div>
                 </div>
