@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   CreditCard,
   Banknote,
@@ -15,6 +17,11 @@ import {
   CheckCircle2,
   ArrowLeft,
   Receipt,
+  Star,
+  User,
+  Search,
+  X,
+  Gift,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CartItem } from "@/lib/pos-data"
@@ -32,7 +39,16 @@ interface PaymentModalProps {
 }
 
 type PaymentMethod = "card" | "cash" | "mobile" | null
-type PaymentStep = "method" | "processing" | "complete"
+type PaymentStep = "customer" | "method" | "processing" | "complete"
+
+interface Customer {
+  id: string
+  name: string
+  email: string
+  phone: string
+  loyaltyPoints: number
+  tier: string
+}
 
 const paymentMethods = [
   {
@@ -55,6 +71,14 @@ const paymentMethods = [
   },
 ]
 
+// Mock customers data (in real app, this would come from API)
+const mockCustomers: Customer[] = [
+  { id: "1", name: "John Smith", email: "john@example.com", phone: "555-0101", loyaltyPoints: 2450, tier: "Gold" },
+  { id: "2", name: "Sarah Johnson", email: "sarah@example.com", phone: "555-0102", loyaltyPoints: 1890, tier: "Silver" },
+  { id: "3", name: "Mike Chen", email: "mike@example.com", phone: "555-0103", loyaltyPoints: 540, tier: "Bronze" },
+  { id: "4", name: "Emma Davis", email: "emma@example.com", phone: "555-0104", loyaltyPoints: 3200, tier: "Platinum" },
+]
+
 export function PaymentModal({
   open,
   onClose,
@@ -66,9 +90,30 @@ export function PaymentModal({
   onPaymentComplete,
 }: PaymentModalProps) {
   const [method, setMethod] = useState<PaymentMethod>(null)
-  const [step, setStep] = useState<PaymentStep>("method")
+  const [step, setStep] = useState<PaymentStep>("customer")
   const [cashAmount, setCashAmount] = useState("")
   const [showReceipt, setShowReceipt] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [customerSearch, setCustomerSearch] = useState("")
+  const [earnedPoints, setEarnedPoints] = useState(0)
+
+  useEffect(() => {
+    if (open) {
+      // Calculate points to be earned (1 point per dollar)
+      const points = Math.floor(total)
+      setEarnedPoints(points)
+    }
+  }, [open, total])
+
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer)
+    setStep("method")
+  }
+
+  const handleSkipCustomer = () => {
+    setSelectedCustomer(null)
+    setStep("method")
+  }
 
   const handleSelectMethod = (m: PaymentMethod) => {
     setMethod(m)
@@ -88,21 +133,31 @@ export function PaymentModal({
 
   const handleDone = () => {
     setMethod(null)
-    setStep("method")
+    setStep("customer")
     setCashAmount("")
+    setSelectedCustomer(null)
+    setCustomerSearch("")
     onPaymentComplete()
   }
 
   const handleClose = () => {
     setMethod(null)
-    setStep("method")
+    setStep("customer")
     setCashAmount("")
+    setSelectedCustomer(null)
+    setCustomerSearch("")
     onClose()
   }
 
   const handleViewReceipt = () => {
     setShowReceipt(true)
   }
+
+  const filteredCustomers = mockCustomers.filter((c) =>
+    c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    c.phone.includes(customerSearch) ||
+    c.email.toLowerCase().includes(customerSearch.toLowerCase())
+  )
 
   const cashValue = parseFloat(cashAmount) || 0
   const changeDue = cashValue - total
@@ -117,15 +172,127 @@ export function PaymentModal({
   const methodLabel =
     method === "card" ? "Card" : method === "cash" ? "Cash" : "Mobile Pay"
 
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case "Platinum": return "text-purple-600 bg-purple-100 dark:bg-purple-950"
+      case "Gold": return "text-yellow-600 bg-yellow-100 dark:bg-yellow-950"
+      case "Silver": return "text-gray-600 bg-gray-100 dark:bg-gray-800"
+      case "Bronze": return "text-orange-600 bg-orange-100 dark:bg-orange-950"
+      default: return "text-muted-foreground bg-muted"
+    }
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-md bg-card border-border text-card-foreground">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-center">
-              {step === "complete" ? "Payment Successful" : "Payment"}
+              {step === "complete" ? "Payment Successful" : step === "customer" ? "Customer Lookup" : "Payment"}
             </DialogTitle>
           </DialogHeader>
+
+          {/* Customer Lookup Step */}
+          {step === "customer" && (
+            <div className="space-y-4">
+              {selectedCustomer && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20">
+                        <User className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-foreground">{selectedCustomer.name}</p>
+                        <p className="text-sm text-muted-foreground">{selectedCustomer.phone}</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold", getTierColor(selectedCustomer.tier))}>
+                            <Star className="h-3 w-3 fill-current" />
+                            {selectedCustomer.tier}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {selectedCustomer.loyaltyPoints.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")} pts
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCustomer(null)}
+                      className="rounded-lg p-1 hover:bg-secondary transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 text-sm">
+                    <Gift className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-primary">+{earnedPoints} points</span>
+                    <span className="text-muted-foreground">will be earned</span>
+                  </div>
+                </div>
+              )}
+
+              {!selectedCustomer && (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      placeholder="Search by name, phone, or email..."
+                      className="pl-9 h-11"
+                    />
+                  </div>
+
+                  <div className="max-h-64 space-y-2 overflow-y-auto">
+                    {filteredCustomers.map((customer) => (
+                      <button
+                        key={customer.id}
+                        onClick={() => handleSelectCustomer(customer)}
+                        className="w-full rounded-xl border border-border bg-card p-3 text-left transition-all hover:border-primary/40 hover:bg-secondary/50 active:scale-[0.98]"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-foreground">{customer.name}</p>
+                            <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className={cn("inline-block rounded-full px-2 py-0.5 text-xs font-bold", getTierColor(customer.tier))}>
+                              {customer.tier}
+                            </span>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {customer.loyaltyPoints.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")} pts
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    {filteredCustomers.length === 0 && customerSearch && (
+                      <p className="py-8 text-center text-sm text-muted-foreground">
+                        No customers found
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              <Separator />
+
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-2">Total Amount</p>
+                <p className="text-4xl font-bold text-primary font-mono">
+                  ${total.toFixed(2)}
+                </p>
+              </div>
+
+              <Button
+                onClick={handleSkipCustomer}
+                className="w-full h-12 text-base font-bold"
+                size="lg"
+              >
+                Continue to Payment
+              </Button>
+            </div>
+          )}
 
           {step === "method" && !method && (
             <div className="space-y-5">
@@ -259,6 +426,26 @@ export function PaymentModal({
                   </p>
                 )}
               </div>
+
+              {selectedCustomer && (
+                <div className="w-full rounded-xl border border-primary/30 bg-primary/5 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+                      <Star className="h-5 w-5 text-primary fill-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">{selectedCustomer.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-lg font-bold text-primary">+{earnedPoints}</span>
+                        <span className="text-xs text-muted-foreground">points earned</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    New balance: {(selectedCustomer.loyaltyPoints + earnedPoints).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")} points
+                  </div>
+                </div>
+              )}
 
               <div className="flex w-full gap-2 mt-2">
                 <button
