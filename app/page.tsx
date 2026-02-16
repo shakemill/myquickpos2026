@@ -311,8 +311,9 @@ export default function HomePage() {
             }`}
             style={{ transitionDelay: '300ms' }}
           >
-            Modern touch-screen POS for restaurants, cafés, and retail. Set up terminals, 
-            manage inventory, and start accepting payments — all from one beautiful dashboard.
+            Modern touch-screen POS for restaurants, cafés, retail, jewelry stores, beauty shops, 
+            bakeries, barber shops, and more. Set up terminals, manage inventory, and start accepting 
+            payments — all from one beautiful dashboard.
           </p>
 
           {/* CTA Buttons */}
@@ -431,7 +432,7 @@ export default function HomePage() {
                 <span className="text-muted-foreground">nothing you don't</span>
               </h2>
               <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
-                A complete solution for restaurants, cafés, and retail businesses
+                A complete solution for restaurants, cafés, retail, jewelry stores, beauty shops, bakeries, barber shops, and more
               </p>
             </div>
           </AnimateOnScroll>
