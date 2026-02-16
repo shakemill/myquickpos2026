@@ -23,6 +23,8 @@ import {
   Star,
   TrendingUp,
   Clock,
+  Menu,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -104,6 +106,7 @@ const BENEFITS = [
 export default function HomePage() {
   const [isVisible, setIsVisible] = useState(false)
   const [scrollY, setScrollY] = useState(0)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -123,23 +126,48 @@ export default function HomePage() {
       <header 
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrollY > 50 
-            ? 'bg-background/80 backdrop-blur-2xl border-b border-border/60 shadow-sm' 
-            : 'bg-transparent'
+            ? 'bg-background/95 backdrop-blur-2xl border-b border-border/60 shadow-lg' 
+            : 'bg-background/50 backdrop-blur-md border-b border-border/20'
         }`}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          {/* Logo */}
           <Link
             href="/"
-            className="group flex items-center gap-2.5 transition-all duration-300"
+            className="group flex items-center gap-2.5 transition-all duration-300 relative z-50"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/25 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/40 group-hover:scale-105">
-              <Monitor className="h-4.5 w-4.5 text-primary-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/25 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/40 group-hover:scale-105">
+              <Monitor className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold tracking-tight">
+            <span className="text-lg font-extrabold tracking-tight">
               MyQuickPOS
             </span>
           </Link>
-          <nav className="flex items-center gap-2 sm:gap-4">
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-8">
+            <a 
+              href="#features" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300"
+            >
+              Features
+            </a>
+            <a 
+              href="#testimonials" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300"
+            >
+              Testimonials
+            </a>
+            <a 
+              href="#donate" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300"
+            >
+              Support
+            </a>
+          </nav>
+
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
             <Button
               variant="ghost"
@@ -152,15 +180,82 @@ export default function HomePage() {
             <Button 
               size="sm" 
               asChild 
-              className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:scale-105"
+              className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 transition-all duration-300 hover:scale-105"
             >
               <Link href="/signup">
                 Get started
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
-          </nav>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card/50 backdrop-blur-sm transition-all duration-300 hover:bg-secondary active:scale-95"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute top-16 left-0 right-0 bg-background/98 backdrop-blur-2xl border-b border-border shadow-xl animate-fade-in">
+            <div className="mx-auto max-w-7xl px-4 py-6 space-y-4">
+              <a 
+                href="#features" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-3 px-4 text-base font-medium text-foreground hover:bg-secondary rounded-lg transition-colors duration-300"
+              >
+                Features
+              </a>
+              <a 
+                href="#testimonials" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-3 px-4 text-base font-medium text-foreground hover:bg-secondary rounded-lg transition-colors duration-300"
+              >
+                Testimonials
+              </a>
+              <a 
+                href="#donate" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-3 px-4 text-base font-medium text-foreground hover:bg-secondary rounded-lg transition-colors duration-300"
+              >
+                Support
+              </a>
+              <div className="border-t border-border pt-4 space-y-2">
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  asChild
+                  className="w-full justify-start text-base"
+                >
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                    Sign in
+                  </Link>
+                </Button>
+                <Button 
+                  size="lg" 
+                  asChild 
+                  className="w-full shadow-lg shadow-primary/25"
+                >
+                  <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                    Get started
+                    <ChevronRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero */}
@@ -322,7 +417,7 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="relative py-24 sm:py-32">
+      <section id="features" className="relative py-24 sm:py-32 scroll-mt-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <AnimateOnScroll animation="fade-up">
             <div className="text-center space-y-4">
@@ -367,7 +462,7 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials */}
-      <section className="relative border-t border-border bg-card/30 py-24 sm:py-32 backdrop-blur-sm">
+      <section id="testimonials" className="relative border-t border-border bg-card/30 py-24 sm:py-32 backdrop-blur-sm scroll-mt-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <AnimateOnScroll animation="fade-up">
             <div className="text-center space-y-4">
