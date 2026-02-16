@@ -1,0 +1,258 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up-in,
+  .animate-fade-in-slow,
+  .animate-scale-in {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Homepage animations */
+@keyframes fade-up-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-up-in {
+  animation: fade-up-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in-slow {
+  animation: fade-in 1s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 220 14% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 14% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 14% 10%;
+    --primary: 142 71% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 10% 94%;
+    --secondary-foreground: 220 14% 20%;
+    --muted: 220 10% 94%;
+    --muted-foreground: 215 15% 45%;
+    --accent: 142 71% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 88%;
+    --input: 220 10% 88%;
+    --ring: 142 71% 40%;
+    --chart-1: 142 71% 40%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 45 93% 47%;
+    --chart-4: 0 72% 51%;
+    --chart-5: 270 67% 58%;
+    --radius: 0.75rem;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 14% 10%;
+    --sidebar-primary: 142 71% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 10% 94%;
+    --sidebar-accent-foreground: 220 14% 10%;
+    --sidebar-border: 220 10% 88%;
+    --sidebar-ring: 142 71% 40%;
+  }
+
+  .dark {
+    --background: 220 14% 6%;
+    --foreground: 210 20% 95%;
+    --card: 220 13% 9%;
+    --card-foreground: 210 20% 95%;
+    --popover: 220 13% 9%;
+    --popover-foreground: 210 20% 95%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 220 14% 6%;
+    --secondary: 220 12% 14%;
+    --secondary-foreground: 210 20% 85%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 215 15% 55%;
+    --accent: 142 71% 45%;
+    --accent-foreground: 220 14% 6%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 20% 95%;
+    --border: 220 12% 18%;
+    --input: 220 12% 18%;
+    --ring: 142 71% 45%;
+    --chart-1: 142 71% 45%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 45 93% 47%;
+    --chart-4: 0 72% 51%;
+    --chart-5: 270 67% 58%;
+    --radius: 0.75rem;
+    --sidebar-background: 220 13% 9%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 142 71% 45%;
+    --sidebar-primary-foreground: 220 14% 6%;
+    --sidebar-accent: 220 12% 14%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 220 12% 18%;
+    --sidebar-ring: 142 71% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Tiptap Receipt Editor */
+.receipt-editor-content p {
+  margin: 0.15em 0;
+}
+
+.receipt-editor-content h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0.25em 0;
+}
+
+.receipt-editor-content h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0.2em 0;
+}
+
+.receipt-editor-content ul,
+.receipt-editor-content ol {
+  padding-left: 1.25em;
+  margin: 0.25em 0;
+}
+
+.receipt-editor-content li {
+  margin: 0.1em 0;
+}
+
+.receipt-editor-content hr {
+  border-color: hsl(var(--border));
+  margin: 0.5em 0;
+}
+
+.receipt-editor-content img {
+  max-width: 100%;
+  height: auto;
+  margin: 0.25em auto;
+  display: block;
+}
+
+.receipt-editor-content .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
+
+/* Receipt Preview */
+.receipt-preview p {
+  margin: 0.1em 0;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.receipt-preview h2 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0.15em 0;
+}
+
+.receipt-preview h3 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0.1em 0;
+}
+
+.receipt-preview ul,
+.receipt-preview ol {
+  padding-left: 1em;
+  margin: 0.15em 0;
+  font-size: 11px;
+}
+
+.receipt-preview hr {
+  border-style: dashed;
+  margin: 0.35em 0;
+}
+
+.receipt-preview img {
+  max-width: 60%;
+  height: auto;
+  margin: 0.2em auto;
+  display: block;
+}
+
+/* Receipt print simulation animation */
+@keyframes receipt-print {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0.5;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(0 0 0% 0);
+    opacity: 1;
+  }
+}
+
+.animate-receipt-print {
+  animation: receipt-print 2s ease-out forwards;
+}

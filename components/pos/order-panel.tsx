@@ -1,0 +1,146 @@
+"use client"
+
+import type { CartItem } from "@/lib/pos-data"
+import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+
+interface OrderPanelProps {
+  cart: CartItem[]
+  onUpdateQuantity: (productId: string, delta: number) => void
+  onRemoveItem: (productId: string) => void
+  onClearCart: () => void
+  onCheckout: () => void
+}
+
+export function OrderPanel({
+  cart,
+  onUpdateQuantity,
+  onRemoveItem,
+  onClearCart,
+  onCheckout,
+}: OrderPanelProps) {
+  const subtotal = cart.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0
+  )
+  const tax = subtotal * 0.08
+  const total = subtotal + tax
+  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+
+  return (
+    <div className="flex h-full flex-col rounded-xl border border-border bg-card">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold text-card-foreground">
+            Current Order
+          </h2>
+          {itemCount > 0 && (
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
+              {itemCount}
+            </span>
+          )}
+        </div>
+        {cart.length > 0 && (
+          <button
+            onClick={onClearCart}
+            className="text-xs font-medium text-destructive hover:text-destructive/80 transition-colors touch-manipulation select-none"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
+
+      <Separator />
+
+      {/* Items */}
+      <ScrollArea className="flex-1 px-4">
+        {cart.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <ShoppingCart className="h-10 w-10 mb-3 opacity-30" />
+            <p className="text-sm">No items yet</p>
+            <p className="text-xs mt-1">Tap a product to add it</p>
+          </div>
+        ) : (
+          <div className="py-3 space-y-1">
+            {cart.map((item) => (
+              <div
+                key={item.product.id}
+                className="flex items-center gap-3 rounded-lg p-2.5 hover:bg-secondary/50 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-card-foreground truncate">
+                    {item.product.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    ${item.product.price.toFixed(2)} each
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => onUpdateQuantity(item.product.id, -1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors touch-manipulation select-none"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="w-8 text-center text-sm font-semibold text-card-foreground font-mono">
+                    {item.quantity}
+                  </span>
+                  <button
+                    onClick={() => onUpdateQuantity(item.product.id, 1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors touch-manipulation select-none"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="w-16 text-right text-sm font-semibold text-card-foreground font-mono">
+                    ${(item.product.price * item.quantity).toFixed(2)}
+                  </span>
+                  <button
+                    onClick={() => onRemoveItem(item.product.id)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors touch-manipulation select-none"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+
+      {/* Totals + Checkout */}
+      {cart.length > 0 && (
+        <div className="border-t border-border p-4 space-y-3">
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Subtotal</span>
+              <span className="font-mono">${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Tax (8%)</span>
+              <span className="font-mono">${tax.toFixed(2)}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between text-lg font-bold text-card-foreground">
+              <span>Total</span>
+              <span className="font-mono">${total.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={onCheckout}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] touch-manipulation select-none"
+          >
+            Pay ${total.toFixed(2)}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
