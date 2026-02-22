@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -243,6 +244,7 @@ export function OnboardingForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const [business, setBusiness] = useState<BusinessData>({
     companyName: "",
@@ -582,7 +584,42 @@ export function OnboardingForm() {
               </div>
             </div>
 
-            <div className="mt-6 flex gap-3">
+            {/* Terms and Conditions */}
+            <div className="mt-6">
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-secondary/50 p-4">
+                <Checkbox
+                  id="terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <Label
+                    htmlFor="terms"
+                    className="text-sm font-normal text-card-foreground cursor-pointer leading-relaxed"
+                  >
+                    I agree to the{" "}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      className="font-medium text-primary hover:text-primary/80 transition-colors underline"
+                    >
+                      Terms and Conditions
+                    </Link>{" "}
+                    and{" "}
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      className="font-medium text-primary hover:text-primary/80 transition-colors underline"
+                    >
+                      Privacy Policy
+                    </Link>
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-3">
               <Button
                 type="button"
                 variant="outline"
@@ -596,7 +633,7 @@ export function OnboardingForm() {
               <Button
                 size="lg"
                 className="h-11 flex-1 text-sm font-semibold"
-                disabled={!isStep2Valid}
+                disabled={!isStep2Valid || !acceptedTerms}
                 onClick={() => setStep(3)}
               >
                 Review

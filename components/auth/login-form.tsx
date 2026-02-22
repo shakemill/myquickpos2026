@@ -69,6 +69,15 @@ export function LoginForm() {
           </div>
         </div>
 
+        {/* Default Credentials Info */}
+        <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+          <p className="text-sm font-semibold text-foreground mb-2">Demo Credentials</p>
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <p><span className="font-medium text-foreground">Email:</span> admin@myquickpos.com</p>
+            <p><span className="font-medium text-foreground">Password:</span> password123</p>
+          </div>
+        </div>
+
         {/* Error message */}
         {error && (
           <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
