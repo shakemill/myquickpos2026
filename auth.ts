@@ -1,0 +1,85 @@
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import { z } from "zod"
+import { tenantRepository } from "@/lib/repositories/tenant.repository"
+import { userRepository } from "@/lib/repositories/user.repository"
+
+const signInSchema = z.object({
+  email: z.string().email("Invalid email"),
+  password: z.string().min(1, "Password is required"),
+  tenantSlug: z.string().optional().default("tenant1"),
+})
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  providers: [
+    Credentials({
+      credentials: {
+        email: {},
+        password: {},
+        tenantSlug: {},
+      },
+      authorize: async (credentials) => {
+        try {
+          const parsed = signInSchema.safeParse(credentials)
+          if (!parsed.success) {
+            console.error("[Auth] Invalid credentials shape:", parsed.error.flatten())
+            return null
+          }
+
+          const { email, password, tenantSlug } = parsed.data
+
+          const tenant = await tenantRepository.findBySlug(tenantSlug)
+          if (!tenant) {
+            console.error("[Auth] Tenant not found:", tenantSlug)
+            return null
+          }
+
+          const user = await userRepository.authenticate(email, password, tenant.id)
+          if (!user) {
+            console.error("[Auth] Authentication failed for", email, "tenant", tenantSlug)
+            return null
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            tenantId: tenant.id,
+            tenantSlug: tenant.slug,
+          }
+        } catch (err) {
+          console.error("[Auth] authorize error:", err)
+          throw err
+        }
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.userId = user.id
+        token.tenantId = (user as { tenantId?: string }).tenantId
+        token.tenantSlug = (user as { tenantSlug?: string }).tenantSlug
+        token.role = (user as { role?: string }).role
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as { id?: string }).id = token.userId as string
+        (session.user as { tenantId?: string }).tenantId = token.tenantId as string
+        (session.user as { tenantSlug?: string }).tenantSlug = token.tenantSlug as string
+        (session.user as { role?: string }).role = token.role as string
+      }
+      return session
+    },
+  },
+  pages: {
+    signIn: "/login",
+  },
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+})

@@ -1,0 +1,274 @@
+// Multi-tenant POS - PostgreSQL schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Multi-tenancy ───────────────────────────────────────────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique // ex: "tenant1", "tenant2"
+  name      String
+  plan      String   @default("free") // free, pro, enterprise
+  settings  Json?    // printer config, currency, tax rate, etc.
+  createdAt DateTime @default(now())
+
+  users         User[]
+  customers     Customer[]
+  products      Product[]
+  categories    Category[]
+  stores        Store[]
+  terminals     Terminal[]
+  orders        Order[]
+  loyalty       LoyaltyProgram?
+  stockMovements StockMovement[]
+  savedCarts    SavedCart[]
+
+  @@index([slug])
+}
+
+// ─── Saved carts (POS hold / recall) ────────────────────────────────────────
+
+model SavedCart {
+  id         String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  terminalId String?
+  name      String
+  items     Json     // [{ productId, quantity }]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, terminalId])
+}
+
+// ─── Stores (magasins) ──────────────────────────────────────────────────────
+
+model Store {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  isCentral Boolean  @default(false)
+  storeStocks    StoreStock[]
+  terminals      Terminal[]
+  stockMovementsFrom StockMovement[] @relation("StockMovementFrom")
+  stockMovementsTo   StockMovement[] @relation("StockMovementTo")
+
+  @@index([tenantId])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String
+  password  String
+  name      String
+  role      Role     @default(CASHIER) // SUPER_ADMIN, ADMIN, MANAGER, CASHIER
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status    String   @default("active") // active, inactive
+  createdAt DateTime @default(now())
+  lastLogin DateTime?
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+}
+
+model Customer {
+  id            String   @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loyaltyPoints Int      @default(0)
+  loyaltyTier   String   @default("bronze") // bronze, silver, gold, platinum
+  totalSpent    Decimal  @db.Decimal(10, 2) @default(0)
+  visits        Int      @default(0)
+  orders        Order[]
+  createdAt     DateTime @default(now())
+  lastVisit     DateTime?
+
+  @@index([tenantId])
+  @@index([tenantId, email])
+}
+
+// ─── Catalog ─────────────────────────────────────────────────────────────────
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  icon      String?
+  color     String?
+  parentId  String?
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryTree")
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products  Product[]
+  type      String?   @default("product") // "product" | "service"
+
+  @@index([tenantId])
+  @@index([tenantId, parentId])
+  @@index([tenantId, type])
+}
+
+model Product {
+  id           String    @id @default(cuid())
+  name         String
+  sku          String
+  price        Decimal   @db.Decimal(10, 2)
+  cost         Decimal   @db.Decimal(10, 2)
+  categoryId   String
+  category     Category   @relation(fields: [categoryId], references: [id])
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  minStock     Int        @default(5)
+  barcode      String?
+  imageUrl     String?
+  isActive     Boolean    @default(true)
+  isService    Boolean    @default(false) // services are not tracked in stock
+  orderItems   OrderItem[]
+  storeStocks  StoreStock[]
+  stockMovements StockMovement[]
+
+  @@unique([sku, tenantId])
+  @@index([tenantId])
+  @@index([tenantId, categoryId])
+}
+
+model StoreStock {
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(0)
+
+  @@id([storeId, productId])
+  @@index([productId])
+}
+
+// ─── Terminals ───────────────────────────────────────────────────────────────
+
+model Terminal {
+  id                 String   @id @default(cuid())
+  name              String   // "terminal-01", "terminal-02"
+  label              String   // "Caisse 1", "Caisse 2"
+  tenantId           String
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  storeId            String?
+  store              Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  isActive           Boolean  @default(true)
+  settings          Json?    // assignedCategories, taxRate
+  orders             Order[]
+
+  @@index([tenantId])
+  @@index([storeId])
+}
+
+// ─── Orders ──────────────────────────────────────────────────────────────────
+
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  terminalId    String
+  terminal      Terminal    @relation(fields: [terminalId], references: [id])
+  customerId    String?
+  customer      Customer?   @relation(fields: [customerId], references: [id])
+  status        OrderStatus @default(COMPLETED)
+  subtotal      Decimal     @db.Decimal(10, 2)
+  tax           Decimal     @db.Decimal(10, 2)
+  discount      Decimal     @db.Decimal(10, 2) @default(0)
+  total         Decimal     @db.Decimal(10, 2)
+  paymentMethod String
+  cashierName   String?
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, terminalId])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  total     Decimal  @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ─── Loyalty ─────────────────────────────────────────────────────────────────
+
+model LoyaltyProgram {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pointsPerEuro Int      @default(10)
+  tiers         Json     // bronze, silver, gold config
+  rewards       Json     // liste des rewards disponibles
+  isActive      Boolean  @default(true)
+
+  @@index([tenantId])
+}
+
+// ─── Stock ───────────────────────────────────────────────────────────────────
+
+model StockMovement {
+  id          String            @id @default(cuid())
+  productId   String
+  product     Product           @relation(fields: [productId], references: [id])
+  tenantId    String
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type        StockMovementType // IN, OUT, ADJUSTMENT
+  quantity    Int               // positive = in, negative = out
+  reason      String?
+  fromStoreId String?
+  fromStore   Store?            @relation("StockMovementFrom", fields: [fromStoreId], references: [id], onDelete: SetNull)
+  toStoreId   String?
+  toStore     Store?            @relation("StockMovementTo", fields: [toStoreId], references: [id], onDelete: SetNull)
+  fromLocation String?          // legacy / Order #123
+  toLocation   String?
+  createdAt   DateTime          @default(now())
+
+  @@index([tenantId])
+  @@index([productId])
+  @@index([tenantId, createdAt])
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  CASHIER
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}

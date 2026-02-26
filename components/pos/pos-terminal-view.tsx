@@ -1,0 +1,315 @@
+"use client"
+
+import { useState, useMemo, useCallback } from "react"
+import { createOrder } from "@/app/actions/orders"
+import { deleteSavedCart } from "@/app/actions/saved-carts"
+import type { CartItem, Product, Category } from "@/lib/pos-data"
+import { PosHeader } from "./pos-header"
+import { CategoryBar } from "./category-bar"
+import { ProductGrid } from "./product-grid"
+import { OrderPanel } from "./order-panel"
+import { PaymentModal } from "./payment-modal"
+import { QuickActions } from "./quick-actions"
+import { ReceiptPreviewModal } from "./receipt-preview-modal"
+import { SaveCartModal } from "./save-cart-modal"
+import { RecallCartModal } from "./recall-cart-modal"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { toast } from "sonner"
+import { Monitor, ArrowLeft } from "lucide-react"
+import Link from "next/link"
+import { formatWithCurrency } from "@/lib/format-currency"
+
+export type PrinterConfig = {
+  paperWidth: "58mm" | "80mm"
+  headerHtml: string
+  footerHtml: string
+}
+
+interface PosTerminalViewProps {
+  terminalId: string
+  terminalName: string
+  products: Product[]
+  categories: Category[]
+  customers: { id: string; name: string; email: string; phone: string; loyaltyPoints: number; tier: string }[]
+  assignedCategories?: string[]
+  taxRate?: number
+  currency?: string
+  printerConfig?: PrinterConfig
+}
+
+export function PosTerminalView({
+  terminalId,
+  terminalName,
+  products: allProducts,
+  categories,
+  customers,
+  assignedCategories = [],
+  taxRate = 8,
+  currency = "USD",
+  printerConfig,
+}: PosTerminalViewProps) {
+  const formatCurrency = useCallback(
+    (amount: number) => formatWithCurrency(amount, currency),
+    [currency]
+  )
+  const [activeCategory, setActiveCategory] = useState("all")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [paymentOpen, setPaymentOpen] = useState(false)
+  const [receiptOpen, setReceiptOpen] = useState(false)
+  const [saveCartOpen, setSaveCartOpen] = useState(false)
+  const [recallCartOpen, setRecallCartOpen] = useState(false)
+  const [lastPaymentMethod, setLastPaymentMethod] = useState("Card")
+  /** ID of the saved cart that was recalled; deleted automatically after payment */
+  const [recalledSavedCartId, setRecalledSavedCartId] = useState<string | null>(null)
+
+  const getDescendantIds = useCallback((categoryId: string): string[] => {
+    const kids = categories.filter((c) => c.parentId === categoryId)
+    if (kids.length === 0) return [categoryId]
+    return [categoryId, ...kids.flatMap((k) => getDescendantIds(k.id))]
+  }, [categories])
+
+  const terminalProducts = useMemo(() => {
+    if (assignedCategories.length === 0) return allProducts
+    return allProducts.filter((p) => assignedCategories.includes(p.category))
+  }, [assignedCategories, allProducts])
+
+  const filteredProducts = useMemo(() => {
+    let result = terminalProducts
+    if (activeCategory !== "all") {
+      const ids = getDescendantIds(activeCategory)
+      result = result.filter((p) => ids.includes(p.category))
+    }
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter((p) => p.name.toLowerCase().includes(query))
+    }
+    return result
+  }, [activeCategory, searchQuery, terminalProducts, getDescendantIds])
+
+  // keep a copy of last completed order for receipt reprint
+  const [lastCart, setLastCart] = useState<CartItem[]>([])
+
+  const addToCart = useCallback((product: Product) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id)
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      }
+      return [...prev, { product, quantity: 1 }]
+    })
+  }, [])
+
+  const updateQuantity = useCallback((productId: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((item) =>
+          item.product.id === productId
+            ? { ...item, quantity: item.quantity + delta }
+            : item
+        )
+        .filter((item) => item.quantity > 0)
+    )
+  }, [])
+
+  const removeItem = useCallback((productId: string) => {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId))
+  }, [])
+
+  const clearCart = useCallback(() => {
+    setCart([])
+    setRecalledSavedCartId(null)
+  }, [])
+
+  const handleCheckout = useCallback(() => {
+    if (cart.length === 0) return
+    setPaymentOpen(true)
+  }, [cart.length])
+
+  const total = useMemo(() => {
+    const subtotal = cart.reduce(
+      (sum, item) => sum + item.product.price * item.quantity,
+      0
+    )
+    return subtotal + subtotal * (taxRate / 100)
+  }, [cart, taxRate])
+
+  const handlePaymentComplete = useCallback(
+    async (paymentData: {
+      customerId?: string | null
+      paymentMethod: string
+    }) => {
+      const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+      const taxAmount = subtotal * (taxRate / 100)
+      const result = await createOrder({
+        terminalId,
+        customerId: paymentData.customerId,
+        paymentMethod: paymentData.paymentMethod,
+        subtotal,
+        tax: taxAmount,
+        total: subtotal + taxAmount,
+        items: cart.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          unitPrice: item.product.price,
+          total: item.product.price * item.quantity,
+        })),
+      })
+
+      if (result.success) {
+        setLastCart([...cart])
+        setLastPaymentMethod(paymentData.paymentMethod)
+        setCart([])
+        if (recalledSavedCartId) {
+          await deleteSavedCart(recalledSavedCartId)
+          setRecalledSavedCartId(null)
+        }
+        toast.success("Order completed successfully!", {
+          description: "Receipt is ready to print.",
+        })
+      } else {
+        toast.error(result.error)
+        throw new Error(result.error)
+      }
+    },
+    [cart, taxRate, terminalId, recalledSavedCartId]
+  )
+
+  const handleReceiptQuickAction = useCallback(() => {
+    if (lastCart.length > 0) {
+      setReceiptOpen(true)
+    } else {
+      toast.info("No recent order", {
+        description: "Complete a sale to generate a receipt.",
+      })
+    }
+  }, [lastCart.length])
+
+  const handleRecallCart = useCallback((items: CartItem[], savedCartId: string) => {
+    setCart(items)
+    setRecalledSavedCartId(savedCartId)
+  }, [])
+
+  return (
+    <div className="flex h-screen flex-col overflow-hidden">
+      <PosHeader
+        onSearch={setSearchQuery}
+        terminalName={terminalName}
+        cashierName="Cashier"
+      />
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left: Product selection area */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="px-5 pt-4 pb-3">
+            <CategoryBar
+              activeCategory={activeCategory}
+              onCategoryChange={setActiveCategory}
+              allowedCategories={assignedCategories.length > 0 ? assignedCategories : undefined}
+              categories={categories.map((c) => ({
+                id: c.id,
+                name: c.name,
+                icon: c.icon ?? "grid",
+                parentId: c.parentId ?? null,
+              }))}
+            />
+          </div>
+
+          <ScrollArea className="flex-1 px-5 pb-5">
+            <ProductGrid
+              products={filteredProducts}
+              onAddToCart={addToCart}
+              formatCurrency={formatCurrency}
+            />
+            {filteredProducts.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                <p className="text-sm">No products found</p>
+                <p className="text-xs mt-1">
+                  Try a different category or search
+                </p>
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+
+        {/* Right: Order panel */}
+        <div className="flex w-[380px] flex-col gap-3 border-l border-border bg-background p-3">
+          <div className="flex-1 overflow-hidden">
+            <OrderPanel
+              cart={cart}
+              taxRate={taxRate}
+              formatCurrency={formatCurrency}
+              onUpdateQuantity={updateQuantity}
+              onRemoveItem={removeItem}
+              onClearCart={clearCart}
+              onCheckout={handleCheckout}
+            />
+          </div>
+          <QuickActions
+            onSaveOrder={() => setSaveCartOpen(true)}
+            onRecallOrder={() => setRecallCartOpen(true)}
+            onDiscount={() =>
+              toast.info("Discount", {
+                description: "Discount feature coming soon.",
+              })
+            }
+            onReceipt={handleReceiptQuickAction}
+            onRefund={() =>
+              toast.info("Refund", {
+                description: "Refund feature coming soon.",
+              })
+            }
+          />
+        </div>
+      </div>
+
+      <PaymentModal
+        open={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        total={total}
+        cart={cart}
+        completedOrderCart={lastCart}
+        taxRate={taxRate}
+        formatCurrency={formatCurrency}
+        terminalName={terminalName}
+        cashierName="Cashier"
+        customers={customers}
+        onConfirmPayment={handlePaymentComplete}
+        onPaymentComplete={() => setPaymentOpen(false)}
+      />
+
+      {/* Receipt reprint from quick action */}
+      <ReceiptPreviewModal
+        open={receiptOpen}
+        onClose={() => setReceiptOpen(false)}
+        cart={lastCart}
+        taxRate={taxRate}
+        formatCurrency={formatCurrency}
+        paymentMethod={lastPaymentMethod}
+        terminalName={terminalName}
+        cashierName="Cashier"
+        printerConfig={printerConfig}
+      />
+
+      <SaveCartModal
+        open={saveCartOpen}
+        onClose={() => setSaveCartOpen(false)}
+        cart={cart}
+        terminalId={terminalId}
+        onSaved={() => setSaveCartOpen(false)}
+      />
+
+      <RecallCartModal
+        open={recallCartOpen}
+        onClose={() => setRecallCartOpen(false)}
+        terminalId={terminalId}
+        products={allProducts}
+        onRecall={handleRecallCart}
+      />
+    </div>
+  )
+}
