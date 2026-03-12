@@ -7,6 +7,7 @@ import { storeRepository } from "@/lib/repositories/store.repository"
 import { storeStockRepository } from "@/lib/repositories/store-stock.repository"
 import { customerRepository } from "@/lib/repositories/customer.repository"
 import { tenantRepository } from "@/lib/repositories/tenant.repository"
+import { orderRepository } from "@/lib/repositories/order.repository"
 import { PosTerminalView } from "@/components/pos/pos-terminal-view"
 
 export default async function PosPage({
@@ -51,7 +52,7 @@ export default async function PosPage({
 
   const settings = (terminal.settings as { assignedCategories?: string[]; taxRate?: number }) ?? {}
   const assignedCategories = settings.assignedCategories ?? []
-  const taxRate = settings.taxRate ?? 8
+  const taxRate = settings.taxRate ?? 0
 
   const productList = products.map((p: { id: string; name: string; price: number; category: string; image?: string; isService?: boolean }) => ({
     id: p.id,
@@ -79,13 +80,35 @@ export default async function PosPage({
     tier: c.loyaltyTier,
   }))
 
-  const printerConfig = tenantSettings?.printer
-    ? {
-        paperWidth: tenantSettings.printer.paperWidth,
-        headerHtml: tenantSettings.printer.headerHtml,
-        footerHtml: tenantSettings.printer.footerHtml,
-      }
-    : undefined
+  const DEFAULT_HEADER = `<p style="text-align: center"><strong>MyQuickPOS</strong></p>`
+  const DEFAULT_FOOTER = `<p style="text-align: center">Merci pour votre achat</p>`
+  const printerConfig = {
+    paperWidth: (tenantSettings?.printer?.paperWidth as "58mm" | "80mm") ?? "80mm",
+    headerHtml: tenantSettings?.printer?.headerHtml?.trim() || DEFAULT_HEADER,
+    footerHtml: tenantSettings?.printer?.footerHtml?.trim() || DEFAULT_FOOTER,
+    autoPrint: tenantSettings?.printer?.autoPrint ?? false,
+  }
+
+  const pendingOrders = await orderRepository.findMany(tenantId, {
+    terminalId: terminal.id,
+    status: "PENDING",
+    take: 50,
+  })
+  const pendingTableOrders = pendingOrders.map((o) => ({
+    id: o.id,
+    orderNumber: o.orderNumber,
+    orderLabel: o.orderLabel ?? null,
+    total: Number(o.total),
+    createdAt: o.createdAt,
+    table: o.table ? { id: o.table.id, name: o.table.name, slug: o.table.slug } : null,
+    items: o.items.map((i) => ({
+      productId: i.productId,
+      quantity: i.quantity,
+      unitPrice: Number(i.unitPrice),
+      total: Number(i.total),
+      product: i.product ? { name: i.product.name } : { name: "—" },
+    })),
+  }))
 
   return (
     <PosTerminalView
@@ -98,6 +121,7 @@ export default async function PosPage({
       taxRate={taxRate}
       currency={currency}
       printerConfig={printerConfig}
+      pendingTableOrders={pendingTableOrders}
     />
   )
 }

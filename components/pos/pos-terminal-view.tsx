@@ -13,16 +13,19 @@ import { QuickActions } from "./quick-actions"
 import { ReceiptPreviewModal } from "./receipt-preview-modal"
 import { SaveCartModal } from "./save-cart-modal"
 import { RecallCartModal } from "./recall-cart-modal"
+import { TableOrderPaymentModal, type PendingTableOrder } from "./table-order-payment-modal"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
-import { Monitor, ArrowLeft } from "lucide-react"
+import { Monitor, ArrowLeft, UtensilsCrossed, Clock } from "lucide-react"
 import Link from "next/link"
-import { formatWithCurrency } from "@/lib/format-currency"
+import { useSession } from "next-auth/react"
+import { formatWithCurrency, formatAmountOnly } from "@/lib/format-currency"
 
 export type PrinterConfig = {
   paperWidth: "58mm" | "80mm"
   headerHtml: string
   footerHtml: string
+  autoPrint?: boolean
 }
 
 interface PosTerminalViewProps {
@@ -35,6 +38,7 @@ interface PosTerminalViewProps {
   taxRate?: number
   currency?: string
   printerConfig?: PrinterConfig
+  pendingTableOrders?: PendingTableOrder[]
 }
 
 export function PosTerminalView({
@@ -44,12 +48,19 @@ export function PosTerminalView({
   categories,
   customers,
   assignedCategories = [],
-  taxRate = 8,
+  taxRate = 0,
   currency = "USD",
   printerConfig,
+  pendingTableOrders = [],
 }: PosTerminalViewProps) {
+  const { data: session } = useSession()
+  const cashierName = (session?.user as { name?: string } | undefined)?.name ?? "Caissier"
   const formatCurrency = useCallback(
     (amount: number) => formatWithCurrency(amount, currency),
+    [currency]
+  )
+  const formatAmount = useCallback(
+    (amount: number) => formatAmountOnly(amount, currency),
     [currency]
   )
   const [activeCategory, setActiveCategory] = useState("all")
@@ -62,6 +73,8 @@ export function PosTerminalView({
   const [lastPaymentMethod, setLastPaymentMethod] = useState("Card")
   /** ID of the saved cart that was recalled; deleted automatically after payment */
   const [recalledSavedCartId, setRecalledSavedCartId] = useState<string | null>(null)
+  const [tableOrderModalOrder, setTableOrderModalOrder] = useState<PendingTableOrder | null>(null)
+  const [tableOrderModalOpen, setTableOrderModalOpen] = useState(false)
 
   const getDescendantIds = useCallback((categoryId: string): string[] => {
     const kids = categories.filter((c) => c.parentId === categoryId)
@@ -199,7 +212,7 @@ export function PosTerminalView({
       <PosHeader
         onSearch={setSearchQuery}
         terminalName={terminalName}
-        cashierName="Cashier"
+        cashierName={cashierName}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -236,13 +249,53 @@ export function PosTerminalView({
           </ScrollArea>
         </div>
 
-        {/* Right: Order panel */}
-        <div className="flex w-[380px] flex-col gap-3 border-l border-border bg-background p-3">
+        {/* Right: Pending table orders + Order panel */}
+        <div className="flex w-[420px] flex-col gap-3 border-l border-border bg-background p-3">
+          {pendingTableOrders.length > 0 && (
+            <div className="shrink-0 rounded-xl border border-border bg-card overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/50">
+                <UtensilsCrossed className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-card-foreground">Order from Tablet</span>
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded bg-primary px-1 text-xs font-bold text-primary-foreground">
+                  {pendingTableOrders.length}
+                </span>
+              </div>
+              <ScrollArea className="max-h-[180px]">
+                <div className="p-2 space-y-1">
+                  {pendingTableOrders.map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => {
+                        setTableOrderModalOrder(o)
+                        setTableOrderModalOpen(true)
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg border border-transparent p-2.5 text-left transition-colors hover:border-border hover:bg-muted/50"
+                    >
+                      <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-card-foreground">
+                          {o.orderLabel || o.table?.name || o.orderNumber}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {o.orderNumber} · {new Date(o.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold text-card-foreground font-mono">
+                        {formatCurrency(o.total)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
           <div className="flex-1 overflow-hidden">
             <OrderPanel
               cart={cart}
               taxRate={taxRate}
               formatCurrency={formatCurrency}
+              formatAmount={formatAmount}
               onUpdateQuantity={updateQuantity}
               onRemoveItem={removeItem}
               onClearCart={clearCart}
@@ -276,10 +329,11 @@ export function PosTerminalView({
         taxRate={taxRate}
         formatCurrency={formatCurrency}
         terminalName={terminalName}
-        cashierName="Cashier"
+        cashierName={cashierName}
         customers={customers}
         onConfirmPayment={handlePaymentComplete}
         onPaymentComplete={() => setPaymentOpen(false)}
+        printerConfig={printerConfig}
       />
 
       {/* Receipt reprint from quick action */}
@@ -291,7 +345,7 @@ export function PosTerminalView({
         formatCurrency={formatCurrency}
         paymentMethod={lastPaymentMethod}
         terminalName={terminalName}
-        cashierName="Cashier"
+        cashierName={cashierName}
         printerConfig={printerConfig}
       />
 
@@ -309,6 +363,16 @@ export function PosTerminalView({
         terminalId={terminalId}
         products={allProducts}
         onRecall={handleRecallCart}
+      />
+
+      <TableOrderPaymentModal
+        open={tableOrderModalOpen}
+        onClose={() => {
+          setTableOrderModalOpen(false)
+          setTableOrderModalOrder(null)
+        }}
+        order={tableOrderModalOrder}
+        formatCurrency={formatCurrency}
       />
     </div>
   )

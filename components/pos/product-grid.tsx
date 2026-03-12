@@ -2,7 +2,7 @@
 
 import type { Product } from "@/lib/pos-data"
 import { Plus } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, toTitleCase } from "@/lib/utils"
 
 interface ProductGridProps {
   products: Product[]
@@ -31,7 +31,7 @@ export function ProductGrid({ products, onAddToCart, formatCurrency }: ProductGr
           >
             <div className="flex w-full items-start justify-between">
               <span className="text-sm font-semibold text-card-foreground leading-tight">
-                {product.name}
+                {toTitleCase(product.name)}
               </span>
               {!isOutOfStock && (
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">

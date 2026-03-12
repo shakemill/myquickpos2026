@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
-import { cn } from "@/lib/utils"
+import { cn, toTitleCase } from "@/lib/utils"
 import { useCategories } from "@/hooks/use-categories"
 import { getCategoryIcon } from "@/lib/category-icons"
 import { LayoutGrid } from "lucide-react"
@@ -93,7 +93,7 @@ export function CategoryBar({ activeCategory, onCategoryChange, allowedCategorie
               )}
             >
               <Icon className="h-5 w-5" />
-              {root.name}
+              {toTitleCase(root.name)}
             </button>
           )
         })}
@@ -132,7 +132,7 @@ export function CategoryBar({ activeCategory, onCategoryChange, allowedCategorie
                 )}
               >
                 <ChildIcon className="h-3.5 w-3.5" />
-                {child.name}
+                {toTitleCase(child.name)}
               </button>
             )
           })}

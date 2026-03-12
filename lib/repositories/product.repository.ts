@@ -5,6 +5,7 @@ export interface ProductFilters {
   search?: string
   lowStock?: boolean
   isService?: boolean
+  includeInactive?: boolean
 }
 
 export interface CreateProductDto {
@@ -34,7 +35,10 @@ export interface UpdateProductDto {
 
 export const productRepository = {
   findAll: async (tenantId: string, filters?: ProductFilters) => {
-    const where: Parameters<typeof prisma.product.findMany>[0]["where"] = { tenantId }
+    const where: Parameters<typeof prisma.product.findMany>[0]["where"] = {
+      tenantId,
+      ...(filters?.includeInactive !== true && { isActive: true }),
+    }
     if (filters?.isService !== undefined) where.isService = filters.isService
     if (filters?.categoryId) where.categoryId = filters.categoryId
     if (filters?.search) {
@@ -141,8 +145,10 @@ export const productRepository = {
       },
     }),
 
+  /** Soft delete: sets isActive to false. Preserves order history. */
   delete: (id: string, tenantId: string) =>
-    prisma.product.deleteMany({
+    prisma.product.updateMany({
       where: { id, tenantId },
+      data: { isActive: false },
     }),
 }

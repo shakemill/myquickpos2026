@@ -33,6 +33,7 @@ interface TerminalInfo {
   location: string
   status: "online" | "offline" | "maintenance"
   cashier: string
+  taxRate?: number
   assignedCategories: string[]
   todaySales: number
   todayOrders: number
@@ -201,7 +202,7 @@ export function TerminalsPageClient({
             name: editTerminal.name,
             location: editTerminal.label,
             cashier: editTerminal.cashier,
-            taxRate: 8,
+            taxRate: editTerminal.taxRate ?? 0,
             assignedCategories: editTerminal.assignedCategories,
             storeId: editTerminal.storeId,
           }}

@@ -32,6 +32,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { formatWithCurrency } from "@/lib/format-currency"
 import { toast } from "sonner"
 
 interface Customer {
@@ -55,8 +56,15 @@ const tierConfig = {
   platinum: { color: "text-purple-600", bg: "bg-purple-100 dark:bg-purple-950", icon: Star },
 }
 
-export function CustomersPageClient({ initialCustomers }: { initialCustomers: Customer[] }) {
+export function CustomersPageClient({
+  currency = "USD",
+  initialCustomers,
+}: {
+  currency?: string
+  initialCustomers: Customer[]
+}) {
   const router = useRouter()
+  const formatCurrency = (amount: number) => formatWithCurrency(amount, currency)
   const [customers, setCustomers] = useState(initialCustomers)
   const [search, setSearch] = useState("")
   const [modalOpen, setModalOpen] = useState(false)
@@ -97,9 +105,6 @@ export function CustomersPageClient({ initialCustomers }: { initialCustomers: Cu
     avgSpent: customers.length ? customers.reduce((sum, c) => sum + c.totalSpent, 0) / customers.length : 0,
     totalVisits: customers.reduce((sum, c) => sum + c.visits, 0),
   }
-
-  const formatCurrency = (amount: number) =>
-    `$${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return

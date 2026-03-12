@@ -1,7 +1,9 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { formatWithCurrency } from "@/lib/format-currency"
 import type { PosTerminalConfig } from "@/lib/pos-store"
 import {
   Monitor,
@@ -57,7 +59,7 @@ export function TerminalCard({
   onEdit,
   categories: categoriesProp,
 }: TerminalCardProps) {
-  const format = formatCurrency ?? ((n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`)
+  const format = formatCurrency ?? ((n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`)
   const hookCategories = useCategories()
   const roots = categoriesProp?.roots ?? hookCategories.roots
   const getChildren = (parentId: string) => {
@@ -68,6 +70,8 @@ export function TerminalCard({
     return hookCategories.getChildren(parentId)
   }
   const status = statusConfig[terminal.status]
+  const [dropdownMounted, setDropdownMounted] = useState(false)
+  useEffect(() => setDropdownMounted(true), [])
 
   // Build grouped badges: show parent names with child counts
   const assignedSet = new Set(terminal.assignedCategories ?? [])
@@ -120,31 +124,44 @@ export function TerminalCard({
           </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors">
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={() => onEdit(terminal)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onToggleStatus(terminal.id)}>
-              <Power className="mr-2 h-4 w-4" />
-              {terminal.status === "online" ? "Set Offline" : "Set Online"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => onDelete(terminal.id)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {dropdownMounted ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={() => onEdit(terminal)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onToggleStatus(terminal.id)}>
+                <Power className="mr-2 h-4 w-4" />
+                {terminal.status === "online" ? "Set Offline" : "Set Online"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => onDelete(terminal.id)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+            aria-label="Open menu"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Details */}

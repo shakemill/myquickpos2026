@@ -23,7 +23,7 @@ export default async function TerminalsPage() {
   const currency = tenantSettings?.currency ?? "USD"
   const todayMap = new Map(todayByTerminal.map((s) => [s.terminalId, { revenue: s.revenue, orders: s.orders }]))
   const terminalList = terminals.map((t) => {
-    const settings = (t.settings as { assignedCategories?: string[]; cashier?: string }) ?? {}
+    const settings = (t.settings as { assignedCategories?: string[]; cashier?: string; taxRate?: number }) ?? {}
     const today = todayMap.get(t.id) ?? { revenue: 0, orders: 0 }
     return {
       id: t.id,
@@ -32,6 +32,7 @@ export default async function TerminalsPage() {
       location: t.label,
       status: t.isActive ? ("online" as const) : ("offline" as const),
       cashier: settings.cashier ?? "Unassigned",
+      taxRate: settings.taxRate ?? 0,
       assignedCategories: settings.assignedCategories ?? [],
       todaySales: today.revenue,
       todayOrders: today.orders,

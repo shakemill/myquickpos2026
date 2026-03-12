@@ -1,6 +1,7 @@
 "use client"
 
 import type { CartItem } from "@/lib/pos-data"
+import { toTitleCase } from "@/lib/utils"
 import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -9,6 +10,7 @@ interface OrderPanelProps {
   cart: CartItem[]
   taxRate?: number
   formatCurrency: (amount: number) => string
+  formatAmount?: (amount: number) => string
   onUpdateQuantity: (productId: string, delta: number) => void
   onRemoveItem: (productId: string) => void
   onClearCart: () => void
@@ -17,8 +19,9 @@ interface OrderPanelProps {
 
 export function OrderPanel({
   cart,
-  taxRate = 8,
+  taxRate = 0,
   formatCurrency,
+  formatAmount = formatCurrency,
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
@@ -75,11 +78,8 @@ export function OrderPanel({
                 className="flex items-center gap-3 rounded-lg p-2.5 hover:bg-secondary/50 transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-card-foreground truncate">
-                    {item.product.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {formatCurrency(item.product.price)} each
+                  <p className="text-sm font-medium text-card-foreground break-words">
+                    {toTitleCase(item.product.name)}
                   </p>
                 </div>
 
@@ -102,8 +102,8 @@ export function OrderPanel({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="w-16 text-right text-sm font-semibold text-card-foreground font-mono">
-                    {formatCurrency(item.product.price * item.quantity)}
+                  <span className="w-20 shrink-0 text-right text-sm font-semibold text-card-foreground font-mono">
+                    {formatAmount(item.product.price * item.quantity)}
                   </span>
                   <button
                     onClick={() => onRemoveItem(item.product.id)}

@@ -1,9 +1,11 @@
 "use client"
 
 import { Monitor, DollarSign, ShoppingCart, TrendingUp } from "lucide-react"
+import { formatWithCurrency } from "@/lib/format-currency"
 
 interface StatsCardsProps {
   formatCurrency?: (amount: number) => string
+  currency?: string
   stats?: {
     revenue: number
     totalOrders: number
@@ -12,7 +14,7 @@ interface StatsCardsProps {
   }
 }
 
-export function StatsCards({ formatCurrency, stats: statsProp }: StatsCardsProps) {
+export function StatsCards({ formatCurrency, currency = "USD", stats: statsProp }: StatsCardsProps) {
   const stats = statsProp ?? {
     revenue: 0,
     totalOrders: 0,
@@ -23,7 +25,7 @@ export function StatsCards({ formatCurrency, stats: statsProp }: StatsCardsProps
   const totalOrders = Number(stats.totalOrders) || 0
   const avgOrderValue = Number(stats.avgOrderValue) || 0
   const activeTerminals = typeof stats.activeTerminals === "string" ? stats.activeTerminals : "0/0"
-  const format = formatCurrency ?? ((n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`)
+  const format = formatCurrency ?? ((n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`)
 
   const statItems = [
     {

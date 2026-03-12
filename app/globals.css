@@ -322,3 +322,21 @@ textarea {
 .animate-receipt-print {
   animation: receipt-print 2s ease-out forwards;
 }
+
+/* Receipt direct print: only show receipt content when printing */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-print-only,
+  .receipt-print-only * {
+    visibility: visible;
+  }
+  .receipt-print-only {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white;
+  }
+}

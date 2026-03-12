@@ -1,4 +1,4 @@
-const CACHE_NAME = "myquickpos-v1";
+const CACHE_NAME = "myquickpos-v2";
 
 const PRECACHE_URLS = [
   "/login",
@@ -6,6 +6,7 @@ const PRECACHE_URLS = [
   "/icons/icon-192x192.jpg",
   "/icons/icon-512x512.jpg",
 ];
+// GET requests to /restaurant/* are cached on first visit by the fetch handler (PWA tablet install).
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

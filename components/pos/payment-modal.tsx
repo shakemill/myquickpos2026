@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CartItem } from "@/lib/pos-data"
-import { ReceiptPreviewModal } from "./receipt-preview-modal"
+import { ReceiptPreviewModal, type ReceiptPrinterConfig } from "./receipt-preview-modal"
 
 interface CustomerOption {
   id: string
@@ -50,9 +50,10 @@ interface PaymentModalProps {
   customers?: CustomerOption[]
   onConfirmPayment: (data: { customerId?: string | null; paymentMethod: string }) => void | Promise<void>
   onPaymentComplete: () => void
+  printerConfig?: ReceiptPrinterConfig
 }
 
-type PaymentMethod = "card" | "cash" | "mobile" | null
+type PaymentMethod = "card" | "cash" | "mtn" | "orange" | null
 type PaymentStep = "customer" | "method" | "processing" | "complete"
 
 const paymentMethods = [
@@ -69,10 +70,16 @@ const paymentMethods = [
     description: "Exact or Change",
   },
   {
-    id: "mobile" as const,
-    label: "Mobile",
+    id: "mtn" as const,
+    label: "MTN Money",
     icon: Smartphone,
-    description: "Tap to Pay",
+    description: "Mobile money",
+  },
+  {
+    id: "orange" as const,
+    label: "Orange Money",
+    icon: Smartphone,
+    description: "Mobile money",
   },
 ]
 
@@ -91,6 +98,7 @@ export function PaymentModal({
   customers = defaultCustomers,
   onConfirmPayment,
   onPaymentComplete,
+  printerConfig,
 }: PaymentModalProps) {
   const [method, setMethod] = useState<PaymentMethod>(null)
   const [step, setStep] = useState<PaymentStep>("customer")
@@ -107,6 +115,12 @@ export function PaymentModal({
       setEarnedPoints(points)
     }
   }, [open, total])
+
+  useEffect(() => {
+    if (open && step === "complete" && printerConfig?.autoPrint && completedOrderCart?.length) {
+      setShowReceipt(true)
+    }
+  }, [open, step, printerConfig?.autoPrint, completedOrderCart?.length])
 
   const handleSelectCustomer = (customer: CustomerOption) => {
     setSelectedCustomer(customer)
@@ -125,7 +139,7 @@ export function PaymentModal({
     try {
       await onConfirmPayment({
         customerId: selectedCustomer?.id ?? null,
-        paymentMethod: m === "card" ? "Card" : "Mobile Pay",
+        paymentMethod: m === "card" ? "Card" : m === "mtn" ? "MTN Money" : "Orange Money",
       })
       setStep("complete")
     } catch (err) {
@@ -185,7 +199,7 @@ export function PaymentModal({
   ].filter((v, i, arr) => arr.indexOf(v) === i && v >= total)
 
   const methodLabel =
-    method === "card" ? "Card" : method === "cash" ? "Cash" : "Mobile Pay"
+    method === "card" ? "Card" : method === "cash" ? "Cash" : method === "mtn" ? "MTN Money" : "Orange Money"
 
   const getTierColor = (tier: string) => {
     switch (tier) {
@@ -320,7 +334,7 @@ export function PaymentModal({
 
               <Separator />
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {paymentMethods.map((pm) => {
                   const Icon = pm.icon
                   return (
@@ -491,6 +505,7 @@ export function PaymentModal({
         paymentMethod={methodLabel}
         terminalName={terminalName}
         cashierName={cashierName}
+        printerConfig={printerConfig}
       />
     </>
   )

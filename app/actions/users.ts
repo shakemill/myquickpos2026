@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import { requireTenantId } from "@/lib/auth"
+import { requireTenantId, requireRole } from "@/lib/auth"
 import { userRepository } from "@/lib/repositories/user.repository"
 import type { Role } from "@prisma/client"
 
@@ -24,8 +24,11 @@ const updateUserSchema = z.object({
 
 export type ActionResult<T = unknown> = { success: true; data: T } | { success: false; error: string }
 
+const ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN", "MANAGER"]
+
 export async function createUser(formData: FormData): Promise<ActionResult> {
   try {
+    await requireRole(ADMIN_ROLES)
     const tenantId = await requireTenantId()
     const parsed = createUserSchema.safeParse(Object.fromEntries(formData))
     if (!parsed.success) {
@@ -48,6 +51,7 @@ export async function createUser(formData: FormData): Promise<ActionResult> {
 
 export async function updateUser(id: string, formData: FormData): Promise<ActionResult> {
   try {
+    await requireRole(ADMIN_ROLES)
     const tenantId = await requireTenantId()
     const parsed = updateUserSchema.safeParse(Object.fromEntries(formData))
     if (!parsed.success) {
@@ -67,6 +71,7 @@ export async function updateUser(id: string, formData: FormData): Promise<Action
 
 export async function deleteUser(id: string): Promise<ActionResult> {
   try {
+    await requireRole(ADMIN_ROLES)
     const tenantId = await requireTenantId()
     await userRepository.delete(id, tenantId)
     revalidatePath("/admin/users")

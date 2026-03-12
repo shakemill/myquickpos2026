@@ -9,13 +9,14 @@ import {
 } from "@/components/ui/dialog"
 import { usePrinter } from "@/hooks/use-printer"
 import { Printer, X, CheckCircle2 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, toTitleCase } from "@/lib/utils"
 import type { CartItem } from "@/lib/pos-data"
 
 export type ReceiptPrinterConfig = {
   paperWidth: "58mm" | "80mm"
   headerHtml: string
   footerHtml: string
+  autoPrint?: boolean
 }
 
 interface ReceiptPreviewModalProps {
@@ -47,6 +48,7 @@ export function ReceiptPreviewModal({
   const receiptRef = useRef<HTMLDivElement>(null)
   const [printing, setPrinting] = useState(false)
   const [printed, setPrinted] = useState(false)
+  const autoPrint = printerConfigProp?.autoPrint === true
 
   const subtotal = cart.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
@@ -77,12 +79,26 @@ export function ReceiptPreviewModal({
   }, [open])
 
   const handlePrint = useCallback(() => {
+    if (!receiptRef.current) return
     setPrinting(true)
-    setTimeout(() => {
+    const printContent = receiptRef.current
+    const onAfterPrint = () => {
+      printContent.classList.remove("receipt-print-only")
+      window.removeEventListener("afterprint", onAfterPrint)
       setPrinting(false)
       setPrinted(true)
-    }, 2200)
+    }
+    window.addEventListener("afterprint", onAfterPrint)
+    printContent.classList.add("receipt-print-only")
+    window.print()
   }, [])
+
+  useEffect(() => {
+    if (open && autoPrint && cart.length > 0) {
+      const t = setTimeout(handlePrint, 300)
+      return () => clearTimeout(t)
+    }
+  }, [open, autoPrint, cart.length, handlePrint])
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -124,10 +140,11 @@ export function ReceiptPreviewModal({
             <div className="border-t-2 border-black my-2" />
 
             {/* Infos commande */}
-            <div className="text-center mb-2">
+            <div className="text-center mb-2 space-y-0.5">
               <p className="font-bold uppercase tracking-wide text-[0.95em]">{orderNo}</p>
               <p className="text-[0.9em] text-gray-700">{dateStr} · {timeStr}</p>
-              <p className="text-[0.9em] text-gray-700">{terminalName} · Caissier: {cashierName}</p>
+              <p className="text-[0.9em] font-medium text-gray-800">Terminal: {terminalName}</p>
+              <p className="text-[0.9em] font-medium text-gray-800">Caissier: {cashierName}</p>
             </div>
 
             <div className="border-t border-dashed border-gray-500 my-2" />
@@ -142,7 +159,7 @@ export function ReceiptPreviewModal({
             <div className="space-y-0.5 mb-2">
               {cart.map((item) => (
                 <div key={item.product.id} className="flex justify-between gap-1">
-                  <span className="flex-1 min-w-0 truncate">{item.product.name}</span>
+                  <span className="flex-1 min-w-0 truncate">{toTitleCase(item.product.name)}</span>
                   <span className="w-6 text-center shrink-0">{item.quantity}</span>
                   <span className="w-12 text-right shrink-0">
                     {formatCurrency(item.product.price * item.quantity)}

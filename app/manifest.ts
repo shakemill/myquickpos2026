@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "MyQuickPOS",
     description: "Modern touch-screen point of sale system for managing terminals, orders, and payments.",
     start_url: "/login",
+    scope: "/",
     display: "standalone",
     orientation: "any",
     background_color: "#0f1117",

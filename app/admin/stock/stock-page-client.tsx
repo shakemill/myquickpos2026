@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { formatWithCurrency } from "@/lib/format-currency"
 import { addRestock, addAdjustment, addQuickDelta, addTransferBatch } from "@/app/actions/stock"
 import { getCategoryIcon } from "@/lib/category-icons"
 import {
@@ -72,6 +73,7 @@ interface StoreOption {
 }
 
 interface StockPageClientProps {
+  currency?: string
   products: ProductRow[]
   categories: Map<string, { id: string; name: string; icon: string | null; parentId: string | null }>
   movements: MovementRow[]
@@ -87,6 +89,7 @@ interface StockPageClientProps {
 }
 
 export function StockPageClient({
+  currency = "USD",
   products: initialProducts,
   categories,
   movements: initialMovements,
@@ -95,6 +98,7 @@ export function StockPageClient({
   kpis: initialKpis,
 }: StockPageClientProps) {
   const router = useRouter()
+  const formatCurrency = (amount: number) => formatWithCurrency(amount, currency)
   const [products, setProducts] = useState(initialProducts)
   const [movements, setMovements] = useState(initialMovements)
   const [kpis, setKpis] = useState(initialKpis)
@@ -325,7 +329,7 @@ export function StockPageClient({
           },
           {
             label: "Total Value",
-            value: `$${kpis.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+            value: formatCurrency(kpis.totalValue),
             icon: DollarSign,
             color: "text-primary",
           },
@@ -466,7 +470,7 @@ export function StockPageClient({
                           </div>
                           <div>
                             <p className="text-sm font-medium text-card-foreground">{row.name}</p>
-                            <p className="text-xs text-muted-foreground">${row.price.toFixed(2)}</p>
+                            <p className="text-xs text-muted-foreground">{formatCurrency(row.price)}</p>
                           </div>
                         </div>
                       </td>
@@ -676,6 +680,7 @@ export function StockPageClient({
         products={products}
         categories={categories}
         categoryTree={categoryTree}
+        formatCurrency={formatCurrency}
       />
 
       <AdjustModal
@@ -741,6 +746,7 @@ function RestockModal({
   products,
   categories,
   categoryTree,
+  formatCurrency,
 }: {
   open: boolean
   onClose: () => void
@@ -752,6 +758,7 @@ function RestockModal({
   products: ProductRow[]
   categories: Map<string, { id: string; name: string; icon: string | null; parentId: string | null }>
   categoryTree: CategoryTreeNode[]
+  formatCurrency: (amount: number) => string
 }) {
   const [items, setItems] = useState<{ productId: string; quantity: number }[]>([
     { productId: "", quantity: 0 },
@@ -863,7 +870,7 @@ function RestockModal({
                     </option>
                     {productsByCategory.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} (${p.price})
+                        {p.name} ({formatCurrency(p.price)})
                       </option>
                     ))}
                   </select>

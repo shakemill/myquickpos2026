@@ -40,6 +40,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { formatWithCurrency, getCurrencySymbol } from "@/lib/format-currency"
 import { updateLoyalty } from "@/app/actions/loyalty"
 
 interface LoyaltyTier {
@@ -110,6 +111,7 @@ function normalizeReward(raw: unknown): Reward {
 }
 
 export interface LoyaltyPageClientProps {
+  currency?: string
   initialTiers: unknown[]
   initialRewards: unknown[]
   initialProgram: LoyaltyProgram
@@ -118,6 +120,7 @@ export interface LoyaltyPageClientProps {
 }
 
 export function LoyaltyPageClient({
+  currency = "USD",
   initialTiers,
   initialRewards,
   initialProgram,
@@ -192,12 +195,8 @@ export function LoyaltyPageClient({
     if (r.success) router.refresh()
   }
 
-  function formatCurrency(amount: number) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
-  }
+  const formatCurrency = (amount: number) => formatWithCurrency(amount, currency)
+  const currencySymbol = getCurrencySymbol(currency)
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
@@ -251,7 +250,7 @@ export function LoyaltyPageClient({
         <div className="group rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Points per $</p>
+              <p className="text-sm font-medium text-muted-foreground">Points per 1 {currencySymbol}</p>
               <p className="text-2xl font-bold text-foreground mt-1">{program.pointsPerDollar}</p>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 transition-all duration-300 group-hover:scale-110">
@@ -504,7 +503,7 @@ export function LoyaltyPageClient({
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="reward-name">Reward Name</Label>
-              <Input id="reward-name" placeholder="e.g., $5 Off, Free Coffee" defaultValue={editingReward?.name} />
+              <Input id="reward-name" placeholder={`e.g., ${formatCurrency(5)} Off, Free Coffee`} defaultValue={editingReward?.name} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="reward-description">Description</Label>
@@ -530,7 +529,7 @@ export function LoyaltyPageClient({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="reward-value">Value ($)</Label>
+                <Label htmlFor="reward-value">Value ({currencySymbol})</Label>
                 <Input id="reward-value" type="number" step={0.01} placeholder="5.00" defaultValue={editingReward?.value} min={0} />
               </div>
               <div className="space-y-2">
@@ -605,7 +604,7 @@ export function LoyaltyPageClient({
               <textarea
                 id="tier-benefits"
                 rows={4}
-                placeholder="Earn 1.5 points per $1"
+                placeholder={`Earn 1.5 points per 1 ${currencySymbol}`}
                 defaultValue={editingTier?.benefits.join("\n")}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />

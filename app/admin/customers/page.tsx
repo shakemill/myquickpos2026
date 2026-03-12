@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getTenantId } from "@/lib/auth"
+import { tenantRepository } from "@/lib/repositories/tenant.repository"
 import { customerRepository } from "@/lib/repositories/customer.repository"
 import { CustomersPageClient } from "./customers-page-client"
 
@@ -7,7 +8,10 @@ export default async function CustomersPage() {
   const tenantId = await getTenantId()
   if (!tenantId) redirect("/login")
 
-  const customers = await customerRepository.findAll(tenantId)
+  const [tenantSettings, customers] = await Promise.all([
+    tenantRepository.getSettings(tenantId),
+    customerRepository.findAll(tenantId),
+  ])
   const customerList = customers.map((c) => ({
     id: c.id,
     name: c.name,
@@ -22,6 +26,7 @@ export default async function CustomersPage() {
     lastVisit: c.lastVisit?.toISOString().split("T")[0] ?? "",
   }))
   const serialized = JSON.parse(JSON.stringify(customerList)) as typeof customerList
+  const currency = tenantSettings?.currency ?? "USD"
 
-  return <CustomersPageClient initialCustomers={serialized} />
+  return <CustomersPageClient currency={currency} initialCustomers={serialized} />
 }

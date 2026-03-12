@@ -1,11 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Monitor, User, Search, ArrowLeft, LogOut } from "lucide-react"
+import { Monitor, User, Search, ArrowLeft, LogOut, LayoutDashboard, ChevronDown } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useAuth } from "@/lib/auth-context"
+import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
 
 interface PosHeaderProps {
   onSearch: (query: string) => void
@@ -14,10 +21,12 @@ interface PosHeaderProps {
 }
 
 export function PosHeader({ onSearch, terminalName, cashierName }: PosHeaderProps) {
-  const { currentUser, logout } = useAuth()
+  const { data: session } = useSession()
+  const user = session?.user as { name?: string; role?: string } | undefined
   const router = useRouter()
   const [time, setTime] = useState("")
   const [date, setDate] = useState("")
+  const hasDashboardAccess = ["SUPER_ADMIN", "ADMIN", "MANAGER"].includes(user?.role ?? "")
 
   useEffect(() => {
     const update = () => {
@@ -44,13 +53,35 @@ export function PosHeader({ onSearch, terminalName, cashierName }: PosHeaderProp
   return (
     <header className="flex items-center justify-between gap-4 border-b border-border bg-card px-5 py-3">
       <div className="flex items-center gap-3">
-        <Link
-          href={currentUser?.role === "manager" ? "/admin" : "/pos"}
-          className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground hover:bg-secondary/80 transition-colors"
-          title={currentUser?.role === "manager" ? "Back to Admin" : "Switch Terminal"}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Menu</span>
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            {hasDashboardAccess && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin" className="flex items-center gap-2 cursor-pointer">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Back to Dashboard
+                </Link>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem asChild>
+              <Link href="/pos" className="flex items-center gap-2 cursor-pointer">
+                <Monitor className="h-4 w-4" />
+                Switch Terminal
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
           <Monitor className="h-5 w-5 text-primary-foreground" />
         </div>
@@ -83,13 +114,13 @@ export function PosHeader({ onSearch, terminalName, cashierName }: PosHeaderProp
         <div className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2">
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-secondary-foreground">
-            {currentUser?.name ?? cashierName ?? "Cashier"}
+            {user?.name ?? cashierName ?? "Cashier"}
           </span>
         </div>
-        {currentUser?.role === "pos_user" && (
+        {user?.role === "CASHIER" && (
           <button
-            onClick={() => {
-              logout()
+            onClick={async () => {
+              await signOut({ redirect: false })
               router.push("/login")
             }}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-destructive transition-colors"

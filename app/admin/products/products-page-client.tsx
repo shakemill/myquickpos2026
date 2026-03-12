@@ -6,7 +6,8 @@ import { CreateProductModal } from "@/components/admin/create-product-modal"
 import { createProduct, updateProduct, deleteProduct } from "@/app/actions/products"
 import { createCategory, updateCategory, deleteCategory } from "@/app/actions/categories"
 import type { Product, Category } from "@/lib/pos-data"
-import { cn } from "@/lib/utils"
+import { cn, toTitleCase } from "@/lib/utils"
+import { formatWithCurrency } from "@/lib/format-currency"
 import {
   Search,
   Plus,
@@ -14,6 +15,7 @@ import {
   Trash2,
   ShoppingBag,
   ChevronRight,
+  ChevronLeft,
 } from "lucide-react"
 import { getCategoryIcon, categoryIconOptions } from "@/lib/category-icons"
 import { Input } from "@/components/ui/input"
@@ -31,6 +33,8 @@ import { toast } from "sonner"
 import { Wrench } from "lucide-react"
 
 type ActiveTab = "products" | "categories" | "services"
+
+const PAGE_SIZE = 20
 
 function CategoryModal({
   open,
@@ -119,16 +123,16 @@ function CategoryModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-card border-border">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-card-foreground">
-            {isEdit ? "Edit Category" : parentCategory ? `Add Subcategory to ${parentCategory.name}` : "Add New Category"}
+            {isEdit ? "Edit Category" : parentCategory ? `Add Subcategory to ${toTitleCase(parentCategory.name)}` : "Add New Category"}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {isEdit
               ? "Update the category details below."
               : parentCategory
-                ? `This will be a subcategory under "${parentCategory.name}".`
+                ? `This will be a subcategory under "${toTitleCase(parentCategory.name)}".`
                 : "Create a new product category for your catalog."}
           </DialogDescription>
         </DialogHeader>
@@ -170,7 +174,7 @@ function CategoryModal({
               >
                 <option value="">None (Root Category)</option>
                 {rootsForType.map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
+                  <option key={r.id} value={r.id}>{toTitleCase(r.name)}</option>
                 ))}
               </select>
             </div>
@@ -229,15 +233,18 @@ function CategoryModal({
 }
 
 export function ProductsPageClient({
+  currency = "USD",
   initialProducts,
   initialServices,
   initialCategories,
 }: {
+  currency?: string
   initialProducts: Product[]
   initialServices: Product[]
   initialCategories: Category[]
 }) {
   const router = useRouter()
+  const formatCurrency = (amount: number) => formatWithCurrency(amount, currency ?? "USD")
   const [products, setProducts] = useState(initialProducts)
   const [services, setServices] = useState(initialServices)
   const [categories, setCategories] = useState(initialCategories)
@@ -264,6 +271,8 @@ export function ProductsPageClient({
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState("all")
   const [activeServiceCategory, setActiveServiceCategory] = useState("all")
+  const [productPage, setProductPage] = useState(1)
+  const [servicePage, setServicePage] = useState(1)
   const [productModalOpen, setProductModalOpen] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [deleteProductTarget, setDeleteProductTarget] = useState<Product | null>(null)
@@ -288,6 +297,25 @@ export function ProductsPageClient({
     })
   }, [services, activeServiceCategory, searchQuery, getDescendantIds])
 
+  const productTotalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE))
+  const serviceTotalPages = Math.max(1, Math.ceil(filteredServices.length / PAGE_SIZE))
+  const paginatedProducts = useMemo(
+    () => filteredProducts.slice((productPage - 1) * PAGE_SIZE, productPage * PAGE_SIZE),
+    [filteredProducts, productPage]
+  )
+  const paginatedServices = useMemo(
+    () => filteredServices.slice((servicePage - 1) * PAGE_SIZE, servicePage * PAGE_SIZE),
+    [filteredServices, servicePage]
+  )
+
+  useEffect(() => {
+    setProductPage(1)
+  }, [activeCategory, searchQuery])
+
+  useEffect(() => {
+    setServicePage(1)
+  }, [activeServiceCategory, searchQuery])
+
   const categoryCount = (catId: string) => {
     if (catId === "all") return products.length
     return products.filter((p) => getDescendantIds(catId).includes(p.category)).length
@@ -302,7 +330,8 @@ export function ProductsPageClient({
     const cat = categories.find((c) => c.id === catId)
     if (!cat) return catId
     const parent = cat.parentId ? categories.find((c) => c.id === cat.parentId) : null
-    return parent ? `${parent.name} > ${cat.name}` : cat.name
+    const name = toTitleCase(cat.name)
+    return parent ? `${toTitleCase(parent.name)} > ${name}` : name
   }
 
   const filteredRoots = useMemo(() => {
@@ -508,9 +537,9 @@ export function ProductsPageClient({
             <button onClick={() => setActiveCategory("all")} className={cn("rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap", activeCategory === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
               All Items <span className="ml-1.5 opacity-60">{products.length}</span>
             </button>
-            {roots.map((cat) => (
+              {roots.map((cat) => (
               <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={cn("rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap", (activeCategory === cat.id || getChildren(cat.id).some((c) => c.id === activeCategory)) ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                {cat.name} <span className="ml-1.5 opacity-60">{categoryCount(cat.id)}</span>
+                {toTitleCase(cat.name)} <span className="ml-1.5 opacity-60">{categoryCount(cat.id)}</span>
               </button>
             ))}
           </div>
@@ -522,7 +551,7 @@ export function ProductsPageClient({
             </button>
             {serviceRoots.map((cat) => (
               <button key={cat.id} onClick={() => setActiveServiceCategory(cat.id)} className={cn("rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap", (activeServiceCategory === cat.id || getChildren(cat.id).some((c) => c.id === activeServiceCategory)) ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                {cat.name} <span className="ml-1.5 opacity-60">{serviceCategoryCount(cat.id)}</span>
+                {toTitleCase(cat.name)} <span className="ml-1.5 opacity-60">{serviceCategoryCount(cat.id)}</span>
               </button>
             ))}
           </div>
@@ -538,11 +567,11 @@ export function ProductsPageClient({
         return (
           <div className="flex gap-1.5 overflow-x-auto">
             <button onClick={() => setActiveCategory(parentToShow!.id)} className={cn("rounded-full px-3 py-1 text-xs font-medium border whitespace-nowrap", activeCategory === parentToShow!.id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground")}>
-              All {parentToShow!.name}
+              All {toTitleCase(parentToShow!.name)}
             </button>
             {childrenToShow.map((child) => (
               <button key={child.id} onClick={() => setActiveCategory(child.id)} className={cn("flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border whitespace-nowrap", activeCategory === child.id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground")}>
-                {child.name} <span className="opacity-60">{categoryCount(child.id)}</span>
+                {toTitleCase(child.name)} <span className="opacity-60">{categoryCount(child.id)}</span>
               </button>
             ))}
           </div>
@@ -558,11 +587,11 @@ export function ProductsPageClient({
         return (
           <div className="flex gap-1.5 overflow-x-auto">
             <button onClick={() => setActiveServiceCategory(parentToShow!.id)} className={cn("rounded-full px-3 py-1 text-xs font-medium border whitespace-nowrap", activeServiceCategory === parentToShow!.id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground")}>
-              All {parentToShow!.name}
+              All {toTitleCase(parentToShow!.name)}
             </button>
             {childrenToShow.map((child) => (
               <button key={child.id} onClick={() => setActiveServiceCategory(child.id)} className={cn("flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border whitespace-nowrap", activeServiceCategory === child.id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground")}>
-                {child.name} <span className="opacity-60">{serviceCategoryCount(child.id)}</span>
+                {toTitleCase(child.name)} <span className="opacity-60">{serviceCategoryCount(child.id)}</span>
               </button>
             ))}
           </div>
@@ -582,20 +611,20 @@ export function ProductsPageClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                   <tr key={product.id} className="hover:bg-secondary/50">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary">
                           <ShoppingBag className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <span className="text-sm font-medium">{product.name}</span>
+                        <span className="text-sm font-medium">{toTitleCase(product.name)}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="inline-flex rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium">{getCategoryBreadcrumb(product.category)}</span>
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono font-semibold">${product.price.toFixed(2)}</td>
+                    <td className="px-5 py-3.5 text-right font-mono font-semibold">{formatCurrency(product.price)}</td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => { setEditProduct(product); setProductModalOpen(true) }} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary"><Pencil className="h-3.5 w-3.5" /></button>
@@ -606,6 +635,36 @@ export function ProductsPageClient({
                 ))}
               </tbody>
             </table>
+            {filteredProducts.length > 0 && productTotalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-card">
+              <p className="text-sm text-muted-foreground">
+                Showing {(productPage - 1) * PAGE_SIZE + 1}-{Math.min(productPage * PAGE_SIZE, filteredProducts.length)} of {filteredProducts.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setProductPage((p) => Math.max(1, p - 1))}
+                  disabled={productPage <= 1}
+                  className="h-8"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium px-2">
+                  Page {productPage} / {productTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setProductPage((p) => Math.min(productTotalPages, p + 1))}
+                  disabled={productPage >= productTotalPages}
+                  className="h-8"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              </div>
+            )}
           </div>
           {filteredProducts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -629,20 +688,20 @@ export function ProductsPageClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredServices.map((service) => (
+                {paginatedServices.map((service) => (
                   <tr key={service.id} className="hover:bg-secondary/50">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary">
                           <Wrench className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <span className="text-sm font-medium">{service.name}</span>
+                        <span className="text-sm font-medium">{toTitleCase(service.name)}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="inline-flex rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium">{getCategoryBreadcrumb(service.category)}</span>
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono font-semibold">${service.price.toFixed(2)}</td>
+                    <td className="px-5 py-3.5 text-right font-mono font-semibold">{formatCurrency(service.price)}</td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => { setEditProduct(service); setProductModalOpen(true) }} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary"><Pencil className="h-3.5 w-3.5" /></button>
@@ -653,6 +712,36 @@ export function ProductsPageClient({
                 ))}
               </tbody>
             </table>
+            {filteredServices.length > 0 && serviceTotalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-card">
+                <p className="text-sm text-muted-foreground">
+                  Showing {(servicePage - 1) * PAGE_SIZE + 1}-{Math.min(servicePage * PAGE_SIZE, filteredServices.length)} of {filteredServices.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setServicePage((p) => Math.max(1, p - 1))}
+                    disabled={servicePage <= 1}
+                    className="h-8"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium px-2">
+                    Page {servicePage} / {serviceTotalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setServicePage((p) => Math.min(serviceTotalPages, p + 1))}
+                    disabled={servicePage >= serviceTotalPages}
+                    className="h-8"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           {filteredServices.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -678,7 +767,7 @@ export function ProductsPageClient({
                         <RootIcon className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-semibold">{root.name}</h3>
+                        <h3 className="text-sm font-semibold">{toTitleCase(root.name)}</h3>
                         <p className="text-xs text-muted-foreground mt-0.5">{totalCount} {(root.type ?? "product") === "service" ? "service" : "product"}{totalCount !== 1 && "s"}{children.length > 0 && ` · ${children.length} subcategor${children.length !== 1 ? "ies" : "y"}`}</p>
                       </div>
                     </div>
@@ -702,7 +791,7 @@ export function ProductsPageClient({
                                 <ChildIcon className="h-4 w-4 text-muted-foreground" />
                               </div>
                               <div>
-                                <p className="text-sm font-medium">{child.name}</p>
+                                <p className="text-sm font-medium">{toTitleCase(child.name)}</p>
                                 <p className="text-xs text-muted-foreground">{childCount} {(child.type ?? "product") === "service" ? "service" : "product"}{childCount !== 1 && "s"}</p>
                               </div>
                             </div>
@@ -729,6 +818,7 @@ export function ProductsPageClient({
       )}
 
       <CreateProductModal
+        currency={currency}
         open={productModalOpen}
         onClose={() => { setProductModalOpen(false); setEditProduct(null) }}
         editProduct={editProduct}
@@ -755,7 +845,7 @@ export function ProductsPageClient({
         onOpenChange={(o) => !o && setDeleteProductTarget(null)}
         title="Delete product"
         description={
-          <p>Delete product &quot;{deleteProductTarget?.name}&quot;? This action cannot be undone.</p>
+          <p>Delete product &quot;{deleteProductTarget ? toTitleCase(deleteProductTarget.name) : ""}&quot;? This action cannot be undone.</p>
         }
         icon={<Trash2 className="h-6 w-6" />}
         confirmLabel="Delete"
@@ -770,7 +860,7 @@ export function ProductsPageClient({
         title="Delete category"
         description={
           <p>
-            Delete category &quot;{deleteCategoryTarget?.name}&quot;?
+            Delete category &quot;{deleteCategoryTarget ? toTitleCase(deleteCategoryTarget.name) : ""}&quot;?
             {getChildren(deleteCategoryTarget?.id ?? "").length > 0 && " All subcategories will also be deleted."}
             This action cannot be undone.
           </p>

@@ -83,7 +83,7 @@ export function CreateTerminalModal({
       setLocation(editTerminal.location)
       setStoreId(editTerminal.storeId ?? stores[0]?.id ?? "")
       setCashier(editTerminal.cashier)
-      setTaxRate(editTerminal.taxRate?.toString() ?? "8")
+      setTaxRate(editTerminal.taxRate != null ? String(editTerminal.taxRate) : "0")
       setSelectedCategories(editTerminal.assignedCategories)
     } else {
       setName("")
@@ -150,7 +150,7 @@ export function CreateTerminalModal({
     fd.set("label", location.trim())
     if (storeId) fd.set("storeId", storeId)
     fd.set("cashier", cashier.trim() || "Unassigned")
-    fd.set("taxRate", (Number.isNaN(parseFloat(taxRate)) ? 8 : Math.max(0, parseFloat(taxRate))).toString())
+    fd.set("taxRate", (taxRate.trim() === "" || Number.isNaN(parseFloat(taxRate)) ? "0" : Math.max(0, Math.min(30, parseFloat(taxRate)))).toString())
     fd.set("assignedCategories", JSON.stringify(selectedCategories))
 
     const result = isEdit && editTerminal
@@ -281,7 +281,7 @@ export function CreateTerminalModal({
 
           <div className="space-y-2">
             <Label htmlFor="terminal-tax" className="text-sm font-medium text-card-foreground">
-              Tax Rate (%)
+              Tax Rate (%) <span className="text-muted-foreground font-normal">(optional)</span>
             </Label>
             <div className="relative">
               <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -293,10 +293,11 @@ export function CreateTerminalModal({
                 max="30"
                 value={taxRate}
                 onChange={(e) => setTaxRate(e.target.value)}
+                placeholder="0"
                 className="pl-10 bg-secondary border-border text-card-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <p className="text-xs text-muted-foreground">Set to 0 to disable tax for this terminal.</p>
+            <p className="text-xs text-muted-foreground">Optional. Set to 0 to disable tax. Leave empty for no tax.</p>
           </div>
 
           {/* Nested category assignment */}

@@ -124,7 +124,7 @@ export function SettingsPageClient({ initialSettings }: { initialSettings: Initi
           <div className="space-y-2">
             <Label htmlFor="tax" className="text-sm text-card-foreground">
               <Percent className="inline h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              Default Tax Rate (%)
+              Default Tax Rate (%) <span className="text-muted-foreground font-normal">(optional)</span>
             </Label>
             <Input
               id="tax"
@@ -133,9 +133,10 @@ export function SettingsPageClient({ initialSettings }: { initialSettings: Initi
               step="0.1"
               value={taxRate}
               onChange={(e) => setTaxRate(e.target.value)}
+              placeholder="0"
               className="bg-secondary border-border text-card-foreground"
             />
-            <p className="text-xs text-muted-foreground">Set to 0 to disable tax.</p>
+            <p className="text-xs text-muted-foreground">Optional. Set to 0 to disable tax.</p>
           </div>
         </div>
       </div>

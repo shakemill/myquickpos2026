@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { requireTenantId } from "@/lib/auth"
 import { productRepository } from "@/lib/repositories/product.repository"
+import { toTitleCase } from "@/lib/utils"
 
 const createProductSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -31,7 +32,7 @@ export async function createProduct(formData: FormData): Promise<ActionResult> {
       return { success: false, error: parsed.error.errors.map((e) => e.message).join(", ") }
     }
     const data = {
-      name: parsed.data.name,
+      name: toTitleCase(parsed.data.name),
       sku: parsed.data.sku || `SKU-${Date.now()}`,
       price: parsed.data.price,
       cost: parsed.data.cost ?? parsed.data.price * 0.6,
@@ -65,6 +66,7 @@ export async function updateProduct(id: string, formData: FormData): Promise<Act
       return { success: false, error: parsed.error.errors.map((e) => e.message).join(", ") }
     }
     const updateData: Parameters<typeof productRepository.update>[1] = { ...parsed.data }
+    if (parsed.data.name !== undefined) updateData.name = toTitleCase(parsed.data.name)
     if (parsed.data.isService !== undefined) updateData.isService = parsed.data.isService
     await productRepository.update(id, updateData, tenantId)
     revalidatePath("/admin/products")

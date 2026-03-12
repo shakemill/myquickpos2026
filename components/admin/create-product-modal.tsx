@@ -11,10 +11,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ShoppingBag, DollarSign, ChevronDown } from "lucide-react"
+import { ShoppingBag, ChevronDown } from "lucide-react"
 import type { Product, Category } from "@/lib/pos-data"
+import { getCurrencySymbol } from "@/lib/format-currency"
+import { toTitleCase } from "@/lib/utils"
 
 interface CreateProductModalProps {
+  currency?: string
   open: boolean
   onClose: () => void
   editProduct?: Product | null
@@ -29,6 +32,7 @@ interface CreateProductModalProps {
 }
 
 export function CreateProductModal({
+  currency = "USD",
   open,
   onClose,
   editProduct,
@@ -126,10 +130,12 @@ export function CreateProductModal({
 
           <div className="space-y-2">
             <Label htmlFor="product-price" className="text-sm font-medium text-card-foreground">
-              Price
+              Price ({getCurrencySymbol(currency)})
             </Label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                {getCurrencySymbol(currency)}
+              </span>
               <Input
                 id="product-price"
                 type="number"
@@ -165,16 +171,16 @@ export function CreateProductModal({
                     // Leaf root -- directly selectable
                     return (
                       <option key={root.id} value={root.id}>
-                        {root.name}
+                        {toTitleCase(root.name)}
                       </option>
                     )
                   }
                   // Parent with children -- show as optgroup
                   return (
-                    <optgroup key={root.id} label={root.name}>
+                    <optgroup key={root.id} label={toTitleCase(root.name)}>
                       {children.map((child) => (
                         <option key={child.id} value={child.id}>
-                          {child.name}
+                          {toTitleCase(child.name)}
                         </option>
                       ))}
                     </optgroup>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { requireTenantId } from "@/lib/auth"
 import { categoryRepository } from "@/lib/repositories/category.repository"
+import { toTitleCase } from "@/lib/utils"
 
 const createCategorySchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -25,7 +26,7 @@ export async function createCategory(formData: FormData): Promise<ActionResult> 
     }
     const category = await categoryRepository.create(
       {
-        name: parsed.data.name,
+        name: toTitleCase(parsed.data.name),
         icon: parsed.data.icon,
         color: undefined,
         parentId: parsed.data.parentId ?? undefined,
@@ -49,7 +50,7 @@ export async function updateCategory(id: string, formData: FormData): Promise<Ac
       return { success: false, error: parsed.error.errors.map((e) => e.message).join(", ") }
     }
     const updateData: Parameters<typeof categoryRepository.update>[1] = {
-      ...(parsed.data.name !== undefined && { name: parsed.data.name }),
+      ...(parsed.data.name !== undefined && { name: toTitleCase(parsed.data.name) }),
       ...(parsed.data.icon !== undefined && { icon: parsed.data.icon }),
       ...(parsed.data.parentId !== undefined && { parentId: parsed.data.parentId }),
       ...(parsed.data.type !== undefined && { type: parsed.data.type }),

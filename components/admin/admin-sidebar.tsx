@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useAuth } from "@/lib/auth-context"
+import { useSession, signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   Monitor,
@@ -19,12 +19,15 @@ import {
   UserCircle,
   Gift,
   Receipt,
+  UtensilsCrossed,
+  Tablet,
 } from "lucide-react"
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: Receipt },
   { href: "/admin/terminals", label: "Terminals", icon: Monitor },
+  { href: "/admin/tablet", label: "Tablet", icon: Tablet },
   { href: "/admin/stores", label: "Stores", icon: Store },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/customers", label: "Customers", icon: UserCircle },
@@ -38,10 +41,11 @@ const navItems = [
 export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { currentUser, logout } = useAuth()
+  const { data: session } = useSession()
+  const user = session?.user as { name?: string; email?: string } | undefined
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await signOut({ redirect: false })
     router.push("/login")
   }
 
@@ -95,10 +99,10 @@ export function AdminSidebar() {
       <div className="flex items-center justify-between border-t border-border px-5 py-4">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-card-foreground truncate">
-            {currentUser?.name ?? "Admin"}
+            {user?.name ?? "Admin"}
           </p>
           <p className="text-xs text-muted-foreground truncate">
-            {currentUser?.email ?? "admin@myquickpos.com"}
+            {user?.email ?? "admin@myquickpos.com"}
           </p>
         </div>
         <div className="flex items-center gap-1">

@@ -10,6 +10,11 @@ export default auth((req) => {
       loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname)
       return Response.redirect(loginUrl)
     }
+    // CASHIER can only access POS, not admin
+    const role = (req.auth.user as { role?: string })?.role
+    if (isAdmin && role === "CASHIER") {
+      return Response.redirect(new URL("/pos", req.nextUrl.origin))
+    }
   }
 
   return undefined

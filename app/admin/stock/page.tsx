@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getTenantId } from "@/lib/auth"
+import { tenantRepository } from "@/lib/repositories/tenant.repository"
 import { productRepository } from "@/lib/repositories/product.repository"
 import { stockRepository } from "@/lib/repositories/stock.repository"
 import { storeRepository } from "@/lib/repositories/store.repository"
@@ -11,8 +12,9 @@ export default async function StockPage() {
   const tenantId = await getTenantId()
   if (!tenantId) redirect("/login")
 
-  const [products, movements, categories, stores, aggregatedStock, stockByProductAndStore] =
+  const [tenantSettings, products, movements, categories, stores, aggregatedStock, stockByProductAndStore] =
     await Promise.all([
+      tenantRepository.getSettings(tenantId),
       productRepository.findAll(tenantId, { isService: false }),
       stockRepository.getMovements(tenantId, undefined, undefined, 200),
       categoryRepository.findAll(tenantId),
@@ -64,8 +66,11 @@ export default async function StockPage() {
   const totalUnits = productList.reduce((sum, p) => sum + p.stock, 0)
   const totalValue = productList.reduce((sum, p) => sum + p.stock * Number(p.cost), 0)
 
+  const currency = tenantSettings?.currency ?? "USD"
+
   return (
     <StockPageClient
+      currency={currency}
       products={productList}
       categories={categoryMap}
       movements={movementList}

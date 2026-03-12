@@ -23,7 +23,9 @@ model Tenant {
   products      Product[]
   categories    Category[]
   stores        Store[]
-  terminals     Terminal[]
+  terminals      Terminal[]
+  establishments Establishment[]
+  tables        Table[]
   orders        Order[]
   loyalty       LoyaltyProgram?
   stockMovements StockMovement[]
@@ -168,9 +170,42 @@ model Terminal {
   isActive           Boolean  @default(true)
   settings          Json?    // assignedCategories, taxRate
   orders             Order[]
+  establishments     Establishment[]
 
   @@index([tenantId])
   @@index([storeId])
+}
+
+// ─── Restaurant / Bar (establishments with tables) ───────────────────────────
+
+model Establishment {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  terminalId String
+  terminal   Terminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+  name       String   // "Le Petit Bistrot"
+  slug       String   // "le-petit-bistrot", unique per tenant
+  tables     Table[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([terminalId])
+}
+
+model Table {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishmentId String
+  establishment  Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  name           String   // "Table 1"
+  slug           String   // "t1", unique per establishment
+  orders         Order[]
+
+  @@unique([establishmentId, slug])
+  @@index([tenantId])
+  @@index([establishmentId])
 }
 
 // ─── Orders ──────────────────────────────────────────────────────────────────
@@ -182,6 +217,9 @@ model Order {
   tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   terminalId    String
   terminal      Terminal    @relation(fields: [terminalId], references: [id])
+  tableId       String?
+  table         Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  orderLabel    String?     // table or client name from tablet
   customerId    String?
   customer      Customer?   @relation(fields: [customerId], references: [id])
   status        OrderStatus @default(COMPLETED)

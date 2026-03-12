@@ -5,11 +5,15 @@ export interface CreateOrderDto {
   orderNumber: string
   terminalId: string
   customerId?: string | null
+  tableId?: string | null
+  orderLabel?: string | null
+  status?: OrderStatus
   subtotal: number
   tax: number
   discount?: number
   total: number
   paymentMethod: string
+  cashierName?: string | null
   items: {
     productId: string
     quantity: number
@@ -45,7 +49,7 @@ export const orderRepository = {
     return prisma.order.findMany({
       where,
       take: filters?.take ?? 200,
-      include: { items: true, terminal: true, customer: true },
+      include: { items: { include: { product: true } }, terminal: true, customer: true, table: true },
       orderBy: { createdAt: "desc" },
     })
   },
@@ -57,12 +61,15 @@ export const orderRepository = {
         tenantId,
         terminalId: data.terminalId,
         customerId: data.customerId ?? null,
-        status: "COMPLETED",
+        tableId: data.tableId ?? null,
+        orderLabel: data.orderLabel ?? null,
+        status: data.status ?? "COMPLETED",
         subtotal: data.subtotal,
         tax: data.tax,
         discount: data.discount ?? 0,
         total: data.total,
         paymentMethod: data.paymentMethod,
+        cashierName: data.cashierName ?? null,
         items: {
           create: data.items.map((item) => ({
             productId: item.productId,
@@ -72,7 +79,17 @@ export const orderRepository = {
           })),
         },
       },
-      include: { items: { include: { product: true } }, customer: true },
+      include: { items: { include: { product: true } }, customer: true, table: true },
+    }),
+
+  updateStatus: (id: string, tenantId: string, data: { status: OrderStatus; paymentMethod?: string; cashierName?: string | null }) =>
+    prisma.order.updateMany({
+      where: { id, tenantId },
+      data: {
+        status: data.status,
+        ...(data.paymentMethod !== undefined && { paymentMethod: data.paymentMethod }),
+        ...(data.cashierName !== undefined && { cashierName: data.cashierName }),
+      },
     }),
 
   generateOrderNumber: async (tenantId: string) => {
